@@ -9,7 +9,7 @@
 
 ## 技術方針
 - Kotlin + Jetpack Compose(UI)+ GLSurfaceView / OpenGL ES(3D描画)。構成は仮決定(`docs/architecture.md`)
-- 計算ロジック(可動域・スイング/ツイスト・当たり判定)は Android 非依存の純Kotlinに分離する
+- 計算ロジック(可動域・スイング/ツイスト・ピッキング用のレイ計算)は Android 非依存の純Kotlinに分離する
 
 ## テスト(TDD強度: 中間)
 - ロジック層(純Kotlin)はテスト先行(Red→Green→Refactor)。JUnitのJVMテストで回す
