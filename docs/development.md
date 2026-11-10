@@ -21,3 +21,16 @@
 
 ## 検証結果の書き方
 タスクファイルの「検証結果」に、実行したコマンドと結果、実機での確認内容を書く。
+
+## エミュレータでの確認(adb)
+SDK の `emulator` と `platform-tools` を使う。
+
+```
+emulator -list-avds                          # AVD の一覧
+emulator -avd AssetDash_API37 -no-snapshot-save &   # 起動
+adb wait-for-device && adb shell getprop sys.boot_completed   # 1 なら起動完了
+./gradlew installDebug
+adb shell am start -W -n com.yswy.dessin/.MainActivity
+adb exec-out screencap -p > screen.png       # スクリーンショット
+adb logcat -d -b crash                       # クラッシュの確認
+```
