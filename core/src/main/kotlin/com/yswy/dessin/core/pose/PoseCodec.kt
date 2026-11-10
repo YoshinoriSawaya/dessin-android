@@ -29,12 +29,13 @@ sealed interface PoseDecodeResult {
  * part <id> <置いたか 0|1> <phi> <psi> <roll>
  * ```
  *
- * 読み込みでは、形式の誤りはエラーにし、値は範囲に収める(可動域、体型と肋骨の大きさの範囲、回転の正規化)。
+ * 読み込みでは、形式の誤りはエラーにし、値は範囲に収める(可動域、体型と胸の大きさの範囲、回転の正規化)。
  * 書かれていない値は初期値、知らない部位の行は無視、親が置かれていない部位は外した扱いにする。
  */
 object PoseCodec {
     const val HEADER = "dessin-pose"
-    const val VERSION = 1
+    /** 版2: 脇腹(flank)を足し、骨盤の親を脇腹にした(E05-01)。版1も読める */
+    const val VERSION = 2
 
     fun encode(skeleton: Skeleton): String = buildString {
         appendLine("$HEADER $VERSION")
@@ -61,7 +62,8 @@ object PoseCodec {
         val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
         val head = lines.firstOrNull()?.split(WS) ?: throw PoseFormatException("空のデータ")
         if (head.size != 2 || head[0] != HEADER) throw PoseFormatException("見出しが違う: ${lines.first()}")
-        if (head[1].toIntOrNull() != VERSION) throw PoseFormatException("知らない版: ${head[1]}")
+        val version = head[1].toIntOrNull()
+        if (version != 1 && version != VERSION) throw PoseFormatException("知らない版: ${head[1]}")
 
         var root = RootTransform()
         var body = BodyParams()
@@ -101,11 +103,13 @@ object PoseCodec {
             }
         }
 
+        // 版1には脇腹が無い(骨盤は肋骨の子だった)。骨盤が置かれていれば脇腹を休止状態で置く
+        if (version == 1 && "pelvis" in flagged) flagged += "flank"
         // 親から順に、親が置かれている部位だけを置く。置かない部位は休止状態にする
         var skeleton = Skeleton.initial().withRoot(root).withBody(body)
         PartSpecs.all.filterNot { it.isRoot }.forEach { spec ->
             if (spec.id in flagged && skeleton.isAvailable(spec.id)) {
-                skeleton = skeleton.place(spec.id).withState(spec.id, states.getValue(spec.id))
+                skeleton = skeleton.place(spec.id).withState(spec.id, states[spec.id] ?: PartState.rest(spec))
             }
         }
         return skeleton

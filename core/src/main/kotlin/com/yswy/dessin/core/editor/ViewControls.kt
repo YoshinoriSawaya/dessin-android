@@ -35,7 +35,7 @@ fun EditorState.fitView(aspect: Double): EditorState {
 }
 
 /**
- * 保存したポーズを読み込む。選択中の部位が置かれていなければ肋骨を選び、全体を表示する(視点の向きは保つ)。
+ * 保存したポーズを読み込む。選択中の部位が置かれていなければ胸を選び、全体を表示する(視点の向きは保つ)。
  */
 fun EditorState.loadPose(pose: Skeleton, aspect: Double): EditorState =
     copy(skeleton = pose, selected = if (pose.isPlaced(selected)) selected else "rib").fitView(aspect)

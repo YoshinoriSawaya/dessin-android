@@ -69,7 +69,7 @@ class SlidersTest {
         assertEquals(Slider(SliderKind.HEAD_SIZE, "大きさ", 60, 140, 100, "%"), head.sliders[1])
         val clav = initial.select("clavR")
         assertEquals(Slider(SliderKind.SHOULDER_WIDTH, "肩幅(左右)", 40, 150, 100, "%"), clav.sliders[1])
-        val pelvis = initial.select("pelvis")
+        val pelvis = initial.select("flank").select("pelvis")
         assertEquals(
             listOf(
                 Slider(SliderKind.ROLL, "ひねり", -45, 45, 0, "°"),
@@ -82,7 +82,7 @@ class SlidersTest {
 
     @Test
     fun 体型のスライダーを変える() {
-        val s = initial.select("pelvis")
+        val s = initial.select("flank").select("pelvis")
             .applySlider(SliderKind.PELVIS_WIDTH, 120)
             .applySlider(SliderKind.HIP_INSET, 25)
             .select("clavL").applySlider(SliderKind.SHOULDER_WIDTH, 130)

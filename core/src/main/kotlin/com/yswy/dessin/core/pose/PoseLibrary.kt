@@ -30,7 +30,7 @@ data class SavedPoseSummary(val id: String, val name: String, val savedAt: Long)
  * pose
  * <PoseCodec の文字列>
  * ```
- * 保存するのはポーズ(骨格・肋骨の置き方・体型)だけで、視点や選択中の部位は含めない。
+ * 保存するのはポーズ(骨格・胸の置き方・体型)だけで、視点や選択中の部位は含めない。
  */
 class PoseLibrary(
     private val store: PoseStore,

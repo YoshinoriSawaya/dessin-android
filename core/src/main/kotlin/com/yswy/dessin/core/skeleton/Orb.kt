@@ -28,7 +28,7 @@ fun orbRotate(spec: PartSpec, current: PartState, rotInParent: Quat): PartState 
     return aimed.copy(roll = roll.coerceIn(spec.roll.min, spec.roll.max))
 }
 
-/** 根(肋骨)は可動域が無いので、ワールドの回転をそのまま後から掛ける */
+/** 根(胸)は可動域が無いので、ワールドの回転をそのまま後から掛ける */
 fun orbRotateRoot(current: Quat, rotInWorld: Quat): Quat = rotInWorld * current
 
 private fun wrapPi(a: Double): Double {

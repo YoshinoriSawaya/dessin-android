@@ -21,7 +21,8 @@ class DrawPlanTest {
         assertEquals(listOf(MeshDraw("rib", 0, MeshStyle.HOT, edges = true, lines = true)), plan.of("rib"))
         // 置ける部位(首・骨盤・左右の肩)は関節の玉を除いてゴースト。線と輪郭は出さない
         assertEquals(listOf(MeshDraw("neck", 0, MeshStyle.GHOST, edges = false, lines = false)), plan.of("neck"))
-        assertEquals(listOf(MeshDraw("pelvis", 0, MeshStyle.GHOST, edges = false, lines = false)), plan.of("pelvis"))
+        assertEquals(listOf(MeshDraw("flank", 0, MeshStyle.GHOST, edges = false, lines = false)), plan.of("flank"))
+        assertTrue(plan.of("pelvis").isEmpty())
         assertEquals(1, plan.of("clavL").size)
         // 置けない部位は描かない
         assertTrue(plan.of("head").isEmpty())

@@ -27,7 +27,8 @@ class PartVisualsTest {
     @Test
     fun 線の本数はWeb版と同じ() {
         fun lines(id: String, i: Int) = PartVisuals.meshes(id)[i].lines.size
-        assertEquals(4, lines("rib", 0)) // 前後の縦線2本と輪2本
+        assertEquals(3, lines("rib", 0)) // 前後の縦線2本と輪1本(もう1本の輪は脇腹へ。E05-02)
+        assertEquals(3, lines("flank", 0))
         assertEquals(1, lines("neck", 0)) // 縦線だけ
         assertEquals(2, lines("upperArmL", 0)) // 縦線と輪
         assertEquals(2, lines("head", 0)) // 縦と横の円
@@ -52,10 +53,10 @@ class PartVisualsTest {
     @Test
     fun 全体を表示の箱は置いた部位だけを囲む() {
         val ribOnly = fitBounds(Skeleton.initial())!!
-        // 肋骨の錐台: 上の半径 0.115、高さ 0.30、奥行きは 0.64 倍(線の分だけ少し広い)
-        assertTrue(ribOnly.first.y <= 1.10 - 0.15 && ribOnly.first.y > 1.10 - 0.16)
+        // 初期状態は胸だけ: 胸の錐台は上の半径 0.115、関節から上へ 0.15・下へ 0.045(E05-02。線の分だけ少し広い)
+        assertTrue(ribOnly.first.y <= 1.10 - 0.045 && ribOnly.first.y > 1.10 - 0.055)
         assertTrue(ribOnly.second.x >= 0.115 && ribOnly.second.x < 0.125)
-        val withLeg = fitBounds(Skeleton.initial().place("pelvis").place("hipL").place("thighL"))!!
+        val withLeg = fitBounds(Skeleton.initial().place("flank").place("pelvis").place("hipL").place("thighL"))!!
         assertTrue(withLeg.first.y < ribOnly.first.y - 0.3)
     }
 

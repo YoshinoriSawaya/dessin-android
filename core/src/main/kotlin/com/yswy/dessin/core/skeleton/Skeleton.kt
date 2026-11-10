@@ -4,7 +4,7 @@ import com.yswy.dessin.core.math.Quat
 import com.yswy.dessin.core.math.Ray
 import com.yswy.dessin.core.math.Vec3
 
-/** 肋骨(根)の置き方。回転は四元数で持ち、スライダー用のオイラー角は Quat.toEulerYXZ で得る */
+/** 胸(根)の置き方。回転は四元数で持ち、スライダー用のオイラー角は Quat.toEulerYXZ で得る */
 data class RootTransform(
     val position: Vec3 = INITIAL_POSITION,
     val rotation: Quat = Quat.IDENTITY,
@@ -77,7 +77,7 @@ data class Skeleton(
         )
     }
 
-    /** 向きを戻す。肋骨は位置・回転・大きさを初期値に戻す(Web版の resetPart) */
+    /** 向きを戻す。胸は位置・回転・大きさを初期値に戻す(Web版の resetPart) */
     fun reset(id: String): Skeleton {
         val spec = PartSpecs[id]
         return if (spec.isRoot) copy(root = RootTransform()) else withState(id, PartState.rest(spec))
@@ -140,7 +140,7 @@ data class Skeleton(
     private fun subtree(id: String): List<String> = listOf(id) + PartSpecs.children(id).flatMap { subtree(it.id) }
 
     companion object {
-        /** 肋骨だけが置かれ、ほかの部位は休止状態 */
+        /** 胸だけが置かれ、ほかの部位は休止状態 */
         fun initial(): Skeleton = Skeleton(
             root = RootTransform(),
             states = PartSpecs.all.filterNot { it.isRoot }.associate { it.id to PartState.rest(it) },

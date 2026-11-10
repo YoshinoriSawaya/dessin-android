@@ -64,7 +64,7 @@ private val EditorStateSaver = Saver<EditorState, String>(
     },
 )
 
-private const val HINT = "まず肋骨をドラッグして置き、大きさや傾きを決める。下の部位から順に選び、緑の範囲の中をドラッグして向きを決める。"
+private const val HINT = "まず胸をドラッグして置き、大きさや傾きを決める。下の部位から順に選び、緑の範囲の中をドラッグして向きを決める。"
 
 /** 画面全体。上が3D(ヒントと凡例を重ねる)、下が操作パネル */
 @Composable

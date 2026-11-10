@@ -16,7 +16,7 @@ private const val D2R = PI / 180
 class PartSpecsTest {
     private val expectedParents = mapOf(
         "rib" to null,
-        "neck" to "rib", "head" to "neck", "pelvis" to "rib",
+        "neck" to "rib", "head" to "neck", "flank" to "rib", "pelvis" to "flank",
         "clavL" to "rib", "upperArmL" to "clavL", "forearmL" to "upperArmL", "handL" to "forearmL",
         "hipL" to "pelvis", "thighL" to "hipL", "shinL" to "thighL", "footL" to "shinL",
         "clavR" to "rib", "upperArmR" to "clavR", "forearmR" to "upperArmR", "handR" to "forearmR",
@@ -25,7 +25,7 @@ class PartSpecsTest {
 
     @Test
     fun 部位は20個で親子関係がWeb版と一致する() {
-        assertEquals(20, PartSpecs.all.size)
+        assertEquals(21, PartSpecs.all.size)
         assertEquals(expectedParents, PartSpecs.all.associate { it.id to it.parent })
     }
 
@@ -43,18 +43,19 @@ class PartSpecsTest {
         fun depth(id: String): Int = PartSpecs[id].parent?.let { depth(it) + 1 } ?: 0
         val expected = mapOf(
             0 to setOf("rib"),
-            1 to setOf("clavL", "clavR", "neck", "pelvis"),
-            2 to setOf("upperArmL", "upperArmR", "head", "hipL", "hipR"),
-            3 to setOf("forearmL", "forearmR", "thighL", "thighR"),
-            4 to setOf("handL", "handR", "shinL", "shinR"),
-            5 to setOf("footL", "footR"),
+            1 to setOf("clavL", "clavR", "neck", "flank"),
+            2 to setOf("upperArmL", "upperArmR", "head", "pelvis"),
+            3 to setOf("forearmL", "forearmR", "hipL", "hipR"),
+            4 to setOf("handL", "handR", "thighL", "thighR"),
+            5 to setOf("shinL", "shinR"),
+            6 to setOf("footL", "footR"),
         )
         assertEquals(expected, PartSpecs.all.groupBy({ depth(it.id) }, { it.id }).mapValues { it.value.toSet() })
     }
 
     @Test
     fun 子の一覧() {
-        assertEquals(listOf("neck", "pelvis", "clavL", "clavR"), PartSpecs.children("rib").map { it.id })
+        assertEquals(listOf("neck", "flank", "clavL", "clavR"), PartSpecs.children("rib").map { it.id })
         assertEquals(listOf("hipL", "hipR"), PartSpecs.children("pelvis").map { it.id })
         assertEquals(emptyList<PartSpec>(), PartSpecs.children("footL"))
     }
@@ -87,7 +88,7 @@ class PartSpecsTest {
 
         val pelvis = PartSpecs["pelvis"]
         assertNull(pelvis.side)
-        assertVec(Vec3(0.0, -0.15, -0.035), pelvis.attach)
+        assertVec(Vec3(0.0, -0.105, 0.0), pelvis.attach)
         assertCone(Cone(70 * D2R, 35 * D2R, 35 * D2R, 35 * D2R), pelvis.cone!!)
     }
 
@@ -148,7 +149,7 @@ class PartSpecsTest {
 
     @Test
     fun 表示名() {
-        assertEquals("肋骨", PartSpecs["rib"].label)
+        assertEquals("胸", PartSpecs["rib"].label)
         assertEquals("左付け根", PartSpecs["hipL"].label)
         assertEquals("右すね", PartSpecs["shinR"].label)
     }
@@ -183,6 +184,6 @@ class NeckSpineTest {
     @Test
     fun 首の付け根は肋骨の上面の背骨の線() {
         assertVec(Vec3(0.0, 0.15, -0.035), PartSpecs["neck"].attach)
-        assertEquals(PartSpecs["pelvis"].attach.z, PartSpecs["neck"].attach.z, EPS)
+        assertEquals(PartSpecs["flank"].attach.z, PartSpecs["neck"].attach.z, EPS)
     }
 }

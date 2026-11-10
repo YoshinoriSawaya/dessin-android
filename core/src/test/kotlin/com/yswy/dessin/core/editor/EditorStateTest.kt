@@ -63,7 +63,7 @@ class EditorStateTest {
 
     @Test
     fun 向きを戻すのは選択中の部位だけ() {
-        val s = initial.select("neck").select("pelvis").let {
+        val s = initial.select("neck").select("flank").select("pelvis").let {
             it.copy(skeleton = it.skeleton.withState("neck", PartState(0.3, 1.0, 0.1)).withState("pelvis", PartState(0.2, 0.5, 0.0)))
         }.resetSelected()
         assertEquals(PartState.rest(PartSpecs["pelvis"]), s.skeleton.state("pelvis"))
@@ -94,10 +94,11 @@ class EditorStateTest {
         assertEquals(
             listOf(
                 listOf("rib"),
-                listOf("clavL", "clavR", "neck", "pelvis"),
-                listOf("upperArmL", "upperArmR", "head", "hipL", "hipR"),
-                listOf("forearmL", "forearmR", "thighL", "thighR"),
-                listOf("handL", "handR", "shinL", "shinR"),
+                listOf("clavL", "clavR", "neck", "flank"),
+                listOf("upperArmL", "upperArmR", "head", "pelvis"),
+                listOf("forearmL", "forearmR", "hipL", "hipR"),
+                listOf("handL", "handR", "thighL", "thighR"),
+                listOf("shinL", "shinR"),
                 listOf("footL", "footR"),
             ),
             groups,
