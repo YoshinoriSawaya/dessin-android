@@ -183,15 +183,21 @@ private fun PartChipView(chip: PartChip, onClick: () -> Unit) {
     }
 }
 
-/** 「表示」の段などに並べるチップ(押すだけのもの) */
+/**
+ * 「表示」の段に並べるチップ。pressed が null なら押すだけ、true・false なら入/切で、入のときは塗る
+ * (Web版の toolChip と aria-pressed)
+ */
 @Composable
-fun ToolChip(label: String, onClick: () -> Unit) {
+fun ToolChip(label: String, pressed: Boolean? = null, onClick: () -> Unit) {
     val shape = RoundedCornerShape(50)
+    val on = pressed == true
     Box(
-        Modifier.heightIn(min = 34.dp).background(Color.White, shape).border(1.dp, Palette.Line, shape)
+        Modifier.heightIn(min = 34.dp)
+            .semantics { if (pressed != null) selected = pressed }
+            .background(if (on) Palette.Ink else Color.White, shape).border(1.dp, if (on) Palette.Ink else Palette.Line, shape)
             .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
-    ) { Text(label, fontSize = 13.sp, color = Palette.Ink, maxLines = 1) }
+    ) { Text(label, fontSize = 13.sp, color = if (on) Color.White else Palette.Ink, maxLines = 1) }
 }
 
 @Composable
