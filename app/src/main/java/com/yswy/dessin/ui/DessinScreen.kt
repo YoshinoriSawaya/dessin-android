@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -20,9 +21,11 @@ import com.yswy.dessin.core.camera.OrbitCamera
 import com.yswy.dessin.core.camera.ViewPreset
 import com.yswy.dessin.core.editor.EditorState
 import com.yswy.dessin.core.editor.EditorStateCodec
+import com.yswy.dessin.core.editor.TouchGesture
 import com.yswy.dessin.core.mesh.fitBounds
 import com.yswy.dessin.gl.DollRenderer
 import com.yswy.dessin.gl.DollSurfaceView
+import com.yswy.dessin.gl.PointerListener
 
 /**
  * 画面の状態の保存。画面の作り直しやプロセスの終了のあとも同じ状態に戻す。
@@ -49,6 +52,23 @@ fun DessinScreen(start: EditorState) {
         onTogglePanel = { state = state.togglePanel() },
     )
 
+    // 指の操作の途中の状態。画面にひとつ
+    val gesture = remember { TouchGesture() }
+    val pointers = object : PointerListener {
+        override fun onDown(id: Int, x: Double, y: Double, time: Long, width: Double, height: Double) {
+            state = gesture.down(state, id, x, y, time, width, height)
+        }
+        override fun onMove(id: Int, x: Double, y: Double, width: Double, height: Double) {
+            state = gesture.move(state, id, x, y, width, height)
+        }
+        override fun onUp(id: Int, x: Double, y: Double, time: Long, width: Double, height: Double) {
+            state = gesture.up(state, id, x, y, time, width, height)
+        }
+        override fun onCancel(id: Int) {
+            state = gesture.cancel(state, id)
+        }
+    }
+
     Column(Modifier.fillMaxSize().background(Palette.Paper).statusBarsPadding()) {
         AndroidView(
             factory = { DollSurfaceView(it) },
@@ -63,6 +83,7 @@ fun DessinScreen(start: EditorState) {
                     }
                 },
             update = { view ->
+                view.pointerListener = pointers
                 view.setScene(DollRenderer.Scene(state.skeleton, state.camera ?: OrbitCamera(), state.selected, state.options))
             },
         )
