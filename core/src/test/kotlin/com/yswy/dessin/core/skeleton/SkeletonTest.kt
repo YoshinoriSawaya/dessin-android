@@ -106,7 +106,7 @@ class SkeletonTest {
     fun 休止状態の関節の位置() {
         val w = initial.worldTransforms()
         assertVec(ribPos, w.getValue("rib").position)
-        assertVec(ribPos + Vec3(0.0, 0.15, 0.0), w.getValue("neck").position)
+        assertVec(ribPos + Vec3(0.0, 0.15, -0.035), w.getValue("neck").position)
         assertVec(ribPos + Vec3(0.145, 0.12, 0.0), w.getValue("upperArmL").position)
         assertVec(ribPos + Vec3(-0.145, 0.12, 0.0), w.getValue("upperArmR").position)
         assertVec(ribPos + Vec3(0.145, 0.12 - 0.25 - 0.23, 0.0), w.getValue("handL").position)
@@ -118,7 +118,7 @@ class SkeletonTest {
         // y 軸まわり90度で x は −z へ
         assertVec(ribPos + Vec3(0.0, 0.12, -0.025), w.getValue("clavL").position)
         val big = initial.withRoot(initial.root.copy(scale = 2.0)).worldTransforms()
-        assertVec(ribPos + Vec3(0.0, 0.30, 0.0), big.getValue("neck").position)
+        assertVec(ribPos + Vec3(0.0, 0.30, -0.07), big.getValue("neck").position)
         assertEquals(2.0, big.getValue("head").scale, EPS)
     }
 

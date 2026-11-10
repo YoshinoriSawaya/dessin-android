@@ -13,10 +13,11 @@
 E04-01
 
 ## 検証結果
-未着手
+- テスト先行: 首の付け根に依存するテスト3か所(SkeletonTest 2、PartVisualsTest 1)を新しい仕様に書き換え、`NeckSpineTest` を足して、失敗することを確認してから `PartSpecs` を直した(仕様の変更のための書き換え)
+- `./gradlew lint test assembleDebug` → BUILD SUCCESSFUL(テスト255件、うち照合3件は停止、失敗0件)
 
 ## 未検証のまま残したこと
-未着手
+- 実機での見た目(E04-02 と一緒に確認する)
 
 ## ステータス
-未着手
+完了(実機での見た目の確認待ち)
