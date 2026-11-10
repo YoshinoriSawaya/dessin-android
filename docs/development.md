@@ -45,3 +45,14 @@ npm run generate
 ```
 
 Node.js が必要。three.js r128 と jsdom は `tools/golden` の開発用の依存で、アプリには入らない。
+
+## 起動時の状態の指定(デバッグビルドだけ)
+エミュレータで見た目を確かめるため、起動時の状態を adb から指定できる(`app/.../DebugStart.kt`)。
+
+```
+adb shell am start -n com.yswy.dessin/.MainActivity --es demo all --es select upperArmL
+```
+
+- `--es demo all`: 全部位を置き、腕と脚を少し動かした姿勢
+- `--es pose "<保存形式の文字列。改行の代わりに ;>"`: 保存形式(PoseCodec)で指定
+- `--es select <部位id>`: 選択する部位(置けるなら置く)

@@ -43,6 +43,20 @@ class LinesTest {
     }
 
     @Test
+    fun 管の面は外を向く() {
+        // 表側だけを描くので、三角形の向き(反時計回りが表)が外向きでないと管の外側が消える
+        val m = tube(listOf(Vec3.ZERO, Vec3(0.0, 0.1, 0.0), Vec3(0.05, 0.15, 0.0)), closed = false, radius = 0.0028, sides = 4)
+        for (t in m.indices.indices step 3) {
+            val a = m.vertex(m.indices[t])
+            val b = m.vertex(m.indices[t + 1])
+            val c = m.vertex(m.indices[t + 2])
+            val faceNormal = (b - a).cross(c - a)
+            val vertexNormal = Vec3(m.normals[m.indices[t] * 3].toDouble(), m.normals[m.indices[t] * 3 + 1].toDouble(), m.normals[m.indices[t] * 3 + 2].toDouble())
+            assertTrue("三角形 ${t / 3} が内向き", faceNormal.dot(vertexNormal) > 0)
+        }
+    }
+
+    @Test
     fun 閉じた管は最後と最初をつなぐ() {
         val circle = (0 until 48).map { val t = it / 48.0 * 2 * Math.PI; Vec3(0.1 * kotlin.math.cos(t), 0.0, 0.1 * kotlin.math.sin(t)) }
         val m = tube(circle, closed = true, radius = 0.0028, sides = 4)

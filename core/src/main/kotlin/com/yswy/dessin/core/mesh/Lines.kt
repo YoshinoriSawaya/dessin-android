@@ -57,8 +57,9 @@ fun tube(points: List<Vec3>, closed: Boolean, radius: Double = 0.0028, sides: In
             val bb = next * sides + j
             val c = next * sides + (j + 1) % sides
             val d = i * sides + (j + 1) % sides
-            b.triangle(a, bb, d)
-            b.triangle(bb, c, d)
+            // 断面の輪は接線まわりに反時計回りなので、外向きが表になる順に結ぶ
+            b.triangle(a, d, bb)
+            b.triangle(bb, d, c)
         }
     }
     return b.build()

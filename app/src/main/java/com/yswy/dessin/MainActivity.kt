@@ -11,9 +11,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val start = debugStartState(this, intent)
         setContent {
             MaterialTheme {
-                DessinScreen()
+                DessinScreen(start)
             }
         }
     }
