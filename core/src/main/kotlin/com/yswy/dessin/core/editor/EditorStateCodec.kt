@@ -62,7 +62,7 @@ object EditorStateCodec {
                 else -> return null
             }
         }
-        // 選んでいた部位が置かれていなければ肋骨を選ぶ
+        // 選んでいた部位が置かれていなければ胸を選ぶ
         if (!skeleton.isPlaced(state.selected)) state = state.copy(selected = "rib")
         return state
     }

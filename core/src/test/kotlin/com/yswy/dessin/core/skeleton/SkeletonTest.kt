@@ -42,7 +42,7 @@ class SkeletonTest {
     @Test
     fun 親が置かれた部位だけが置ける() {
         assertEquals(
-            setOf("rib", "neck", "pelvis", "clavL", "clavR"),
+            setOf("rib", "neck", "flank", "clavL", "clavR"),
             PartSpecs.all.filter { initial.isAvailable(it.id) }.map { it.id }.toSet(),
         )
         assertTrue(initial.place("neck").isAvailable("head"))

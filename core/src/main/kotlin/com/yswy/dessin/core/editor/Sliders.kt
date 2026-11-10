@@ -55,7 +55,7 @@ val EditorState.sliders: List<Slider>
 
 /**
  * スライダーの値を反映する(Web版の onSlider)。選択中の部位に無いスライダーなら何もしない。
- * 肋骨の傾きは、いまの回転をオイラー角(YXZ)に分けて1軸だけ差し替える。
+ * 胸の傾きは、いまの回転をオイラー角(YXZ)に分けて1軸だけ差し替える。
  */
 fun EditorState.applySlider(kind: SliderKind, value: Int): EditorState {
     if (sliders.none { it.kind == kind }) return this

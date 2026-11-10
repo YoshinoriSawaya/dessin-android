@@ -68,7 +68,7 @@ class PickingTest {
         val ray = Ray(elbow + Vec3(3.0, 0.0, 0.034), Vec3(-1.0, 0.0, 0.0))
         assertEquals("forearmL", pickPart(s, "rib", DisplayOptions(), ray))
         // 玉を消すと前腕には当たらず、奥の胴に当たる
-        assertEquals("rib", pickPart(s, "rib", DisplayOptions(markers = false), ray))
+        assertEquals("flank", pickPart(s, "rib", DisplayOptions(markers = false), ray))
     }
 
     @Test
@@ -148,7 +148,7 @@ class HipPickTest {
 
     @Test
     fun 置いていない付け根もゴーストなら選べる_ガイドを消すと骨盤() {
-        val s = Skeleton.initial().place("pelvis")
+        val s = Skeleton.initial().place("flank").place("pelvis")
         assertEquals("hipL", pickPart(s, "rib", DisplayOptions(), nearHip(s, "L")))
         assertEquals("pelvis", pickPart(s, "rib", DisplayOptions(guides = false), nearHip(s, "L")))
     }
@@ -156,7 +156,7 @@ class HipPickTest {
     @Test
     fun 付け根は骨盤の側面から見えていて直接当たる() {
         // 骨盤の外面より外にある付け根の円柱を、真横から。腕を置くと垂らした前腕が手前に来るので、脚の側だけ置く
-        val s = Skeleton.initial().place("pelvis").place("hipL").place("thighL")
+        val s = Skeleton.initial().place("flank").place("pelvis").place("hipL").place("thighL")
         val j = s.guideCenter("thighL")
         val side = Ray(Vec3(j.x + 3.0, j.y + 0.04, j.z), Vec3(-1.0, 0.0, 0.0))
         assertEquals("hipL", pickPart(s, "rib", DisplayOptions(), side))

@@ -31,7 +31,7 @@ data class EditorState(
         return copy(skeleton = skeleton.place(id), selected = id)
     }
 
-    /** 選択中の部位は外せるか(肋骨は外せない) */
+    /** 選択中の部位は外せるか(胸は外せない) */
     val canRemove: Boolean get() = !PartSpecs[selected].isRoot
 
     /** 選択中の部位を子孫ごと外し、親を選ぶ(Web版の「外す」) */
@@ -77,10 +77,11 @@ data class EditorState(
     private companion object {
         val CHIP_ORDER = listOf(
             listOf("rib"),
-            listOf("clavL", "clavR", "neck", "pelvis"),
-            listOf("upperArmL", "upperArmR", "head", "hipL", "hipR"),
-            listOf("forearmL", "forearmR", "thighL", "thighR"),
-            listOf("handL", "handR", "shinL", "shinR"),
+            listOf("clavL", "clavR", "neck", "flank"),
+            listOf("upperArmL", "upperArmR", "head", "pelvis"),
+            listOf("forearmL", "forearmR", "hipL", "hipR"),
+            listOf("handL", "handR", "thighL", "thighR"),
+            listOf("shinL", "shinR"),
             listOf("footL", "footR"),
         )
     }

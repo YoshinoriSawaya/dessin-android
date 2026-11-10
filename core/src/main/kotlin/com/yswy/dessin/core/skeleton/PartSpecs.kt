@@ -11,11 +11,14 @@ object PartSpecs {
     private const val D2R = PI / 180
 
     val all: List<PartSpec> = buildList {
-        add(PartSpec("rib", "肋骨", null, null, Vec3.ZERO, Vec3.ZERO, Vec3.Z, 0.0, 0.0, null, null, RollRange(0.0, 0.0), null))
+        add(PartSpec("rib", "胸", null, null, Vec3.ZERO, Vec3.ZERO, Vec3.Z, 0.0, 0.0, null, null, RollRange(0.0, 0.0), null))
         // 首の付け根は背骨の線(骨盤と同じ前後 −0.035。E04-03)
         add(part("neck", "首", "rib", null, v(0, 0.15, -0.035), v(0, 1, 0), 0.07, 0.2, cone(45, 50, 35, 35), roll(-30, 30)))
         add(part("head", "頭", "neck", null, v(0, 0.07, 0), v(0, 1, 0), 0.115, 0.22, cone(35, 45, 30, 30), roll(-60, 60), adjust = Adjust.HEAD_SIZE))
-        add(part("pelvis", "骨盤", "rib", null, v(0, -0.15, -0.035), v(0, -1, 0), 0.07, 0.2, cone(70, 35, 35, 35), roll(-45, 45), adjust = Adjust.PELVIS_WIDTH))
+        // 肋骨を胸(根)と脇腹に分ける。高さ 0.30 を上から 6.5:3.5、関節は分かれ目の背骨の線(E05-01)
+        add(part("flank", "脇腹", "rib", null, v(0, 0.15 - 0.195, -0.035), v(0, -1, 0), 0.105, 0.15, cone(25, 20, 20, 20), roll(-30, 30)))
+        // 骨盤は脇腹の子。休止状態のワールドの位置は分ける前(肋骨から (0, −0.15, −0.035))と同じ
+        add(part("pelvis", "骨盤", "flank", null, v(0, -0.105, 0), v(0, -1, 0), 0.07, 0.2, cone(70, 35, 35, 35), roll(-45, 45), adjust = Adjust.PELVIS_WIDTH))
         for (side in Side.entries) {
             val s = if (side == Side.LEFT) "L" else "R"
             val n = if (side == Side.LEFT) "左" else "右"

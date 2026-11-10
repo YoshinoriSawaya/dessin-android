@@ -35,6 +35,8 @@ data class MeshPlacement(val position: Vec3, val rotation: Quat, val scale: Vec3
  */
 object PartVisuals {
     private const val LE = 0.0025
+    /** 胸と脇腹の分かれ目の半径(もとの肋骨の錐台を下から 0.105 の高さで切った半径) */
+    private const val SPLIT_R = 0.095 + (0.115 - 0.095) * (0.105 / 0.30)
     private val QZ90 = Quat.fromAxisAngle(Vec3.Z, PI / 2)
 
     private class Entry(val part: PartMesh, val position: Vec3, val rotation: Quat)
@@ -79,7 +81,12 @@ object PartVisuals {
         }
         fun marker(r: Double) = mk(sph(r), Vec3.ZERO, edges = false, kind = MeshKind.MARKER)
         when (base) {
-            "rib" -> mk(frustum(0.115, 0.095, 0.30, 0.64), Vec3.ZERO, edges = true, lines = frustumLines(0.115, 0.095, 0.30, 0.64, listOf(0.06, -0.07)))
+            // 胸と脇腹は、もとの肋骨の錐台(上 0.115・下 0.095・高さ 0.30)を上から 6.5:3.5 で分けたもの(E05-02)
+            "rib" -> mk(frustum(0.115, SPLIT_R, 0.195, 0.64), Vec3(0.0, 0.0525, 0.0), edges = true, lines = frustumLines(0.115, SPLIT_R, 0.195, 0.64, listOf(0.0075)))
+            "flank" -> {
+                mk(frustum(SPLIT_R, 0.095, 0.105, 0.64), Vec3(0.0, -0.0525, 0.035), edges = true, lines = frustumLines(SPLIT_R, 0.095, 0.105, 0.64, listOf(0.0275)))
+                marker(0.04)
+            }
             "neck" -> {
                 mk(cyl(0.032, 0.07), Vec3(0.0, 0.035, 0.0), edges = true, lines = cylLines(0.032, 0.07, ring = false))
                 marker(0.038)
