@@ -5,7 +5,7 @@
 |----|------|------|
 | UI | Jetpack Compose | スライダー、部位チップ、表示切替、回転オーブ |
 | 3D描画 | GLSurfaceView + OpenGL ES | 円柱・箱・球・管・半透明の可動域 |
-| ロジック | 純Kotlin(Android非依存) | JVMテスト対象 |
+| ロジック | 純Kotlin(Android非依存) | JVMテスト対象。`:core` モジュールに分け、Android API を使えないようにする |
 
 3D描画の代替案(Filament / SceneView、libGDX、Godot C#)は検討済み。Android標準で枯れている点を理由に、現時点では OpenGL ES を仮採用。
 
@@ -31,3 +31,12 @@
 
 ## 参照実装
 Web版 `docs/web-reference.html`(three.js r128、単一HTML)。寸法の数値や可動域の制限値はそこを正とする。
+
+## 依存ライブラリ
+| ライブラリ | 理由 |
+|-----------|------|
+| AndroidX Core・Lifecycle・Activity Compose | Compose で画面を作るための標準構成 |
+| Compose BOM・UI・Material3 | UI(スライダー、チップなど) |
+| JUnit 4 | JVMテスト |
+
+バージョンは `gradle/libs.versions.toml` を正とする。

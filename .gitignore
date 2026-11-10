@@ -1,13 +1,22 @@
+# Gradle / Android build
 .gradle/
 build/
 local.properties
-.idea/
-*.iml
 captures/
 .externalNativeBuild/
 .cxx/
 *.apk
 *.aab
+
+# 署名鍵・秘密情報
 *.keystore
 *.jks
 .env
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+
+# OS
+Thumbs.db
+.DS_Store
