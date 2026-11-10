@@ -234,3 +234,57 @@ for (const seed of [1, 2, 3, 4, 5, 6]) {
 mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, lines.join('\n') + '\n');
 console.log(`書き出し: ${outPath}(${lines.length} 行)`);
+
+/* ---------- カメラ(E02-01) ---------- */
+// Web版の updateCamera・setRay・screenDelta と同じ手順を three.js の PerspectiveCamera・Raycaster で行う
+
+const camOutPath = resolve(root, 'core/src/test/resources/golden/camera-golden.txt');
+const camLines = [
+  '# 自動生成。手で編集しない。tools/golden で `npm run generate` を実行して作り直す',
+  '# 元: docs/web-reference.html の updateCamera・setRay・screenDelta(three.js r128)',
+];
+{
+  const r = rng(100);
+  const D2R = Math.PI / 180;
+  for (let i = 0; i < 30; i++) {
+    const target = new T.Vector3((r() * 2 - 1) * 0.5, 0.5 + r(), (r() * 2 - 1) * 0.5);
+    const yaw = (r() * 2 - 1) * 4;
+    const pitch = -1.2 + r() * 2.6;
+    const dist = 0.8 + r() * 8.2;
+    const width = 300 + Math.floor(r() * 1200);
+    const height = 300 + Math.floor(r() * 2000);
+    const camera = new T.PerspectiveCamera(35, width / height, 0.1, 60);
+    const cp = Math.cos(pitch);
+    camera.position.set(target.x + dist * Math.sin(yaw) * cp, target.y + dist * Math.sin(pitch), target.z + dist * Math.cos(yaw) * cp);
+    camera.lookAt(target);
+    camera.updateMatrixWorld();
+    camera.updateProjectionMatrix();
+    camLines.push(['camera', target.x, target.y, target.z, yaw, pitch, dist, width, height].map(fmt).join(' '));
+    camLines.push(['position', camera.position.x, camera.position.y, camera.position.z].map(fmt).join(' '));
+    camLines.push(['rotation', camera.quaternion.x, camera.quaternion.y, camera.quaternion.z, camera.quaternion.w].map(fmt).join(' '));
+    camLines.push(['projection', ...camera.projectionMatrix.elements].map(fmt).join(' '));
+    camLines.push(['view', ...camera.matrixWorldInverse.elements].map(fmt).join(' '));
+    const raycaster = new T.Raycaster();
+    for (let k = 0; k < 4; k++) {
+      const sx = r() * width;
+      const sy = r() * height;
+      const ndc = new T.Vector2((sx / width) * 2 - 1, -(sy / height) * 2 + 1);
+      raycaster.setFromCamera(ndc, camera);
+      const o = raycaster.ray.origin;
+      const d = raycaster.ray.direction;
+      camLines.push(['ray', sx, sy, o.x, o.y, o.z, d.x, d.y, d.z].map(fmt).join(' '));
+    }
+    for (let k = 0; k < 2; k++) {
+      const p = target.clone().add(randomUnit(r).multiplyScalar(r() * 0.5));
+      const dx = (r() * 2 - 1) * 50;
+      const dy = (r() * 2 - 1) * 50;
+      const unit = 2 * camera.position.distanceTo(p) * Math.tan(camera.fov * D2R / 2) / Math.max(1, height);
+      const right = new T.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+      const up = new T.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+      const out = right.multiplyScalar(dx * unit).addScaledVector(up, -dy * unit);
+      camLines.push(['delta', p.x, p.y, p.z, dx, dy, out.x, out.y, out.z].map(fmt).join(' '));
+    }
+  }
+}
+writeFileSync(camOutPath, camLines.join('\n') + '\n');
+console.log(`書き出し: ${camOutPath}(${camLines.length} 行)`);

@@ -36,7 +36,7 @@ adb logcat -d -b crash                       # クラッシュの確認
 ```
 
 ## Web版との照合データ(E01-10)
-`core` の `WebGoldenTest` は、Web版(`docs/web-reference.html`)を Node で動かして作ったデータ `core/src/test/resources/golden/web-golden.txt` と照合する。Web版やデータの作り方を変えたら作り直す。
+`core` の `WebGoldenTest`・`CameraGoldenTest` は、Web版(`docs/web-reference.html`)を Node で動かして作ったデータ(`core/src/test/resources/golden/` の `web-golden.txt`・`camera-golden.txt`)と照合する。Web版やデータの作り方を変えたら作り直す。
 
 ```
 cd tools/golden
