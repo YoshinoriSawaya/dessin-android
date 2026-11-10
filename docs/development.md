@@ -34,3 +34,14 @@ adb shell am start -W -n com.yswy.dessin/.MainActivity
 adb exec-out screencap -p > screen.png       # スクリーンショット
 adb logcat -d -b crash                       # クラッシュの確認
 ```
+
+## Web版との照合データ(E01-10)
+`core` の `WebGoldenTest` は、Web版(`docs/web-reference.html`)を Node で動かして作ったデータ `core/src/test/resources/golden/web-golden.txt` と照合する。Web版やデータの作り方を変えたら作り直す。
+
+```
+cd tools/golden
+npm install
+npm run generate
+```
+
+Node.js が必要。three.js r128 と jsdom は `tools/golden` の開発用の依存で、アプリには入らない。
