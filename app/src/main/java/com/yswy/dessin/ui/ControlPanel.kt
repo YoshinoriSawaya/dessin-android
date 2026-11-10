@@ -70,10 +70,16 @@ class PanelActions(
 
 /**
  * 下の操作パネル(Web版の #panel)。選択中の部位、向きを戻す・外す・折りたたみ、説明、スライダー、部位チップ。
- * 回転オーブはスライダーの右に置く。tools には「表示」の段に並べるボタンを渡す(E02-10 で整える)。
+ * 回転オーブはスライダーの右に置く。tools には「表示」の段、saveTools には「保存」の段に並べるボタンを渡す。
  */
 @Composable
-fun ControlPanel(state: EditorState, actions: PanelActions, modifier: Modifier = Modifier, tools: @Composable () -> Unit) {
+fun ControlPanel(
+    state: EditorState,
+    actions: PanelActions,
+    modifier: Modifier = Modifier,
+    tools: @Composable () -> Unit,
+    saveTools: @Composable () -> Unit,
+) {
     Column(modifier.background(Palette.Panel).padding(horizontal = 16.dp, vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.weight(1f)) {
@@ -100,6 +106,7 @@ fun ControlPanel(state: EditorState, actions: PanelActions, modifier: Modifier =
                 }
             }
             Group("表示") { tools() }
+            Group("保存") { saveTools() }
         }
     }
 }
