@@ -51,15 +51,29 @@ fun intersectTriangle(ray: Ray, a: Vec3, b: Vec3, c: Vec3, backfaceCulling: Bool
 fun pickPart(skeleton: Skeleton, selected: String, options: DisplayOptions, ray: Ray): String? {
     if (pickDot(skeleton, selected, options, ray) != null) return selected
     var best: String? = null
+    var bestPoint: Vec3? = null
     var bestDistance = Double.MAX_VALUE
-    drawPlan(skeleton, selected, options).meshes.forEach { d ->
+    val plan = drawPlan(skeleton, selected, options)
+    plan.meshes.forEach { d ->
         val mesh = PartVisuals.meshes(d.partId)[d.meshIndex].mesh
         // 顔の面だけ両面。選択中の色(片面)やゴーストのときは片面
         val hit = nearestHit(mesh, meshWorldMatrix(skeleton, d.partId, d.meshIndex), ray, doubleSided = d.style == MeshStyle.MASK)
         if (hit != null && hit.distance < bestDistance) {
             bestDistance = hit.distance
             best = d.partId
+            bestPoint = hit.point
         }
+    }
+    // 付け根は骨盤にほぼ埋まるので、骨盤の脚の付け根の近く(関節から 0.09 以内)に当たったら付け根を選ぶ(E04-02)
+    if (best == "pelvis" && bestPoint != null) {
+        val world = skeleton.worldTransforms()
+        val reach = 0.09 * world.getValue("pelvis").scale
+        val drawn = plan.meshes.map { it.partId }.toSet()
+        listOf("L", "R").filter { "hip$it" in drawn }
+            .map { "hip$it" to world.getValue("thigh$it").position.distanceTo(bestPoint) }
+            .filter { it.second <= reach }
+            .minByOrNull { it.second }
+            ?.let { return it.first }
     }
     return best
 }

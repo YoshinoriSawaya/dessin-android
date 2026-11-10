@@ -16,11 +16,11 @@ class PartVisualsTest {
     @Test
     fun 輪郭はWeb版で指定したメッシュだけにある() {
         val withEdges = PartSpecs.all.flatMap { s -> PartVisuals.meshes(s.id).mapIndexedNotNull { i, m -> if (m.edges != null) "${s.id}:$i" else null } }.toSet()
-        // 関節の玉・頭の球・付け根には輪郭が無い
+        // 関節の玉・頭の球には輪郭が無い。付け根は E04-02 で見えるようにしたので輪郭がある
         assertTrue("head:1" in withEdges)
         assertTrue("head:0" !in withEdges)
         assertTrue("neck:1" !in withEdges)
-        assertTrue("hipL:0" !in withEdges)
+        assertTrue("hipL:0" in withEdges)
         assertTrue("rib:0" in withEdges)
     }
 
@@ -76,5 +76,30 @@ class PartVisualsTest {
             }
         }
         assertNull(PartVisuals.meshes("rib").getOrNull(1))
+    }
+}
+
+/** E04-02: 付け根は骨盤の側面から少しはみ出す、短く太い円柱 */
+class HipVisualTest {
+    @Test
+    fun 付け根の円柱は骨盤の外面から002外まで届く() {
+        listOf(BodyParams(), BodyParams(pelvisWidth = 1.4, hipInset = 0.02), BodyParams(pelvisWidth = 0.6)).forEach { body ->
+            val outer = 0.1157 * body.pelvisWidth
+            val p = PartVisuals.placement("hipL", 0, body)
+            val mesh = PartVisuals.meshes("hipL")[0].mesh
+            // 付け根の関節は骨盤の中心から 0.025。円柱の外の端は関節から見て x の最大
+            val m = Mat4.compose(p.position, p.rotation, p.scale)
+            val farX = (0 until mesh.vertexCount).maxOf { m.transformPoint(mesh.vertex(it)).x }
+            assertEquals(outer + 0.02 - 0.025, farX, 1e-6)
+            // 太さは半径 0.045
+            val (lo, hi) = mesh.bounds()!!
+            assertEquals(0.045, hi.x, 1e-6)
+            assertEquals(-0.045, lo.x, 1e-6)
+        }
+    }
+
+    @Test
+    fun 付け根には輪郭がある() {
+        assertTrue(PartVisuals.meshes("hipR")[0].edges != null)
     }
 }

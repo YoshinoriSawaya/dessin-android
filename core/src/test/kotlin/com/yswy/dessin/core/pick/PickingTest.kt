@@ -123,3 +123,42 @@ class PickingTest {
         assertEquals(pickPart(s, "forearmL", DisplayOptions(), ribRay), pickAtPress(s, "forearmL", DisplayOptions(), ribRay).part)
     }
 }
+
+/** E04-02: 足の付け根は骨盤に埋まっているので、骨盤の脚の付け根の近くをタップしても選べるようにする */
+class HipPickTest {
+    private val all = PartSpecs.all.fold(Skeleton.initial()) { acc, p -> acc.place(p.id) }
+
+    /** 正面(+z)から、ワールドの点 p を狙うレイ */
+    private fun front(p: Vec3) = Ray(Vec3(p.x, p.y, p.z + 3.0), Vec3(0.0, 0.0, -1.0))
+
+    /** 脚の付け根の関節(ももの関節)の少し上を正面から */
+    private fun nearHip(s: Skeleton, side: String) = front(s.guideCenter("thigh$side") + Vec3(0.0, 0.03, 0.0))
+
+    @Test
+    fun 骨盤の脚の付け根の近くをタップすると付け根を選ぶ() {
+        assertEquals("hipL", pickPart(all, "rib", DisplayOptions(), nearHip(all, "L")))
+        assertEquals("hipR", pickPart(all, "rib", DisplayOptions(), nearHip(all, "R")))
+    }
+
+    @Test
+    fun 骨盤の中央をタップすれば骨盤を選ぶ() {
+        val c = all.guideCenter("pelvis") + Vec3(0.0, -0.07, 0.035)
+        assertEquals("pelvis", pickPart(all, "rib", DisplayOptions(), front(c)))
+    }
+
+    @Test
+    fun 置いていない付け根もゴーストなら選べる_ガイドを消すと骨盤() {
+        val s = Skeleton.initial().place("pelvis")
+        assertEquals("hipL", pickPart(s, "rib", DisplayOptions(), nearHip(s, "L")))
+        assertEquals("pelvis", pickPart(s, "rib", DisplayOptions(guides = false), nearHip(s, "L")))
+    }
+
+    @Test
+    fun 付け根は骨盤の側面から見えていて直接当たる() {
+        // 骨盤の外面より外にある付け根の円柱を、真横から。腕を置くと垂らした前腕が手前に来るので、脚の側だけ置く
+        val s = Skeleton.initial().place("pelvis").place("hipL").place("thighL")
+        val j = s.guideCenter("thighL")
+        val side = Ray(Vec3(j.x + 3.0, j.y + 0.04, j.z), Vec3(-1.0, 0.0, 0.0))
+        assertEquals("hipL", pickPart(s, "rib", DisplayOptions(), side))
+    }
+}
