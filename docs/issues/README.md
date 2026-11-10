@@ -7,7 +7,7 @@
 | [E01](epics/E01-logic-port.md) | ロジック層のKotlin移植 | 完了 |
 | [E02](epics/E02-render-ui.md) | 3D描画とUI | 進行中 |
 | [E03](epics/E03-pose-save.md) | ポーズの保存 | 完了 |
-| [E04](epics/E04-device-feedback.md) | 実機確認の修正 | 未着手 |
+| [E04](epics/E04-device-feedback.md) | 実機確認の修正 | 進行中 |
 | [E05](epics/E05-chest-flank.md) | 胸と脇腹 | 未着手 |
 
 ## いまの状態

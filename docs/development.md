@@ -35,7 +35,9 @@ adb exec-out screencap -p > screen.png       # スクリーンショット
 adb logcat -d -b crash                       # クラッシュの確認
 ```
 
-## Web版との照合データ(E01-10)
+## Web版との照合データ(E01-10。v1 で役目を終えた)
+Web版を使わない方針(2026-11-11)に合わせ、`WebGoldenTest`・`MeshGoldenTest`・`PickGoldenTest` は止めた(@Ignore。仕様が Web版と変わるため)。`CameraGoldenTest` は人形の仕様に関係しないので動かし続ける。以下は記録として残す。
+
 `core` の `WebGoldenTest`・`CameraGoldenTest`・`MeshGoldenTest`・`PickGoldenTest` は、Web版(`docs/web-reference.html`)を Node で動かして作ったデータ(`core/src/test/resources/golden/` の `web-golden.txt`・`camera-golden.txt`・`mesh-golden.txt`・`pick-golden.txt`)と照合する。Web版やデータの作り方を変えたら作り直す。
 
 ```

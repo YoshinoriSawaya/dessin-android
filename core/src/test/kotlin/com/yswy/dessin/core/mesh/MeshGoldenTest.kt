@@ -5,6 +5,7 @@ import com.yswy.dessin.core.skeleton.PartSpecs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Ignore
 import org.junit.Test
 import kotlin.math.abs
 
@@ -12,6 +13,7 @@ import kotlin.math.abs
  * 部位の形・置き方・可動域の表示が Web版(three.js r128)と一致することを確かめる(E02-02)。
  * データは tools/golden の generate.mjs が作る。線(正中線の管)と輪郭は Web版と作り方が違うので対象外。
  */
+@Ignore("Web版との照合は v1 で完了(2026-11-11)。E04 以降は仕様が Web版と異なる。docs/development.md を参照")
 class MeshGoldenTest {
     private val tol = 1e-6
 

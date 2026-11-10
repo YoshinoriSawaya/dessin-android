@@ -14,10 +14,12 @@
 なし
 
 ## 検証結果
-未着手
+- CLAUDE.md(判断の拠り所・テスト)、docs/architecture.md(参照実装)、docs/development.md(照合データ)を新しい方針に改めた
+- `WebGoldenTest`・`MeshGoldenTest`・`PickGoldenTest` に理由つきの @Ignore を付けた(データと生成スクリプトは記録として残す)
+- `./gradlew lint test assembleDebug` → BUILD SUCCESSFUL(テスト254件のうち3件を止めた、失敗0件)
 
 ## 未検証のまま残したこと
-未着手
+なし
 
 ## ステータス
-未着手
+完了
