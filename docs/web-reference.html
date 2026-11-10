@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>デッサン人形</title>
+<style>
+:root{
+  /* layout: full-height 3D stage on top, compact control sheet pinned to the bottom (phone portrait first) */
+  --paper:#e6e4df;
+  --panel:#f7f6f3;
+  --ink:#23221e;
+  --muted:#6b675e;
+  --line:#d3d0c7;
+  --accent:#d9481f;
+  --rom:#1f9d75;
+  --font:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Noto Sans JP",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font);color-scheme:light;display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+#stage{position:relative;flex:1 1 auto;min-height:0;background:var(--paper)}
+#stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.fail{margin:24px 16px;line-height:1.7}
+#hint{position:absolute;left:12px;right:12px;top:10px;margin:0;font-size:12px;line-height:1.6;color:var(--muted);pointer-events:none}
+#hint[hidden]{display:none}
+#legend{position:absolute;left:12px;bottom:8px;margin:0;display:flex;flex-wrap:wrap;gap:2px 12px;font-size:11px;color:var(--muted);pointer-events:none}
+#legend[hidden]{display:none}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.dot.rom{background:var(--rom);opacity:.7}
+.dot.grab{background:var(--accent)}
+.dot.next{background:transparent;border:1px solid var(--muted)}
+#panel{flex:0 0 auto;background:var(--panel);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -6px 18px rgba(35,34,30,.06)}
+.head{display:flex;align-items:center;gap:8px}
+.sel{flex:1;min-width:0;display:flex;flex-direction:column}
+.k{font-size:11px;color:var(--muted)}
+#selLabel{font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+button{font:inherit;color:var(--ink);cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ghost{min-height:34px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:transparent;font-size:13px;white-space:nowrap}
+.ghost:disabled{opacity:.35;cursor:default}
+#fold{width:34px;height:34px;border:1px solid var(--line);border-radius:8px;background:transparent;font-size:14px;line-height:1}
+#fold[aria-expanded="false"]{transform:rotate(180deg)}
+#body[hidden]{display:none}
+.info{margin:4px 0 0;font-size:12px;color:var(--muted);line-height:1.5}
+.ctl{display:flex;align-items:center;gap:8px;margin-top:2px}
+.sliders{flex:1;min-width:0;display:flex;flex-direction:column}
+.orbwrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:0}
+.orbwrap .k{font-size:10px}
+#orb{display:block;touch-action:none;cursor:grab}
+.row{display:grid;grid-template-columns:6.2em 1fr 3.4em;align-items:center;gap:8px;min-height:32px}
+.row[hidden]{display:none}
+.row label{font-size:13px}
+.row output{font-size:13px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+input[type=range]{width:100%;margin:0;height:28px;accent-color:var(--accent)}
+input[type=range]:disabled{opacity:.3}
+.group{display:flex;align-items:center;gap:10px;margin-top:6px}
+.gl{flex:0 0 auto;width:3.2em;font-size:12px;color:var(--muted)}
+.chips{display:flex;gap:6px;overflow-x:auto;touch-action:pan-x;padding:2px 0;scrollbar-width:none;align-items:center}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;min-height:34px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:13px;white-space:nowrap}
+.chip.avail{border:1px dashed var(--accent)}
+.chip.placed{border-color:var(--ink)}
+.chip:disabled{opacity:.35;cursor:default}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.sep{flex:0 0 1px;align-self:stretch;margin:6px 2px;background:var(--line)}
+@media (max-height:620px){ #hint{display:none} }
+</style>
+</head>
+<body>
+<div id="stage">
+  <p id="hint">まず肋骨をドラッグして置き、大きさや傾きを決める。下の部位から順に選び、緑の範囲の中をドラッグして向きを決める。</p>
+  <p id="legend"><span><i class="dot rom"></i>可動域</span><span><i class="dot grab"></i>ドラッグする点</span><span><i class="dot next"></i>次に置ける部位</span></p>
+</div>
+<section id="panel" aria-label="部位の配置">
+  <div class="head">
+    <div class="sel"><span class="k">選択中の部位</span><strong id="selLabel">-</strong></div>
+    <button id="jReset" class="ghost" type="button">向きを戻す</button>
+    <button id="del" class="ghost" type="button">外す</button>
+    <button id="fold" type="button" aria-expanded="true" aria-controls="body" aria-label="パネルを折りたたむ">▾</button>
+  </div>
+  <div id="body">
+    <p class="info" id="selInfo"></p>
+    <div class="ctl"><div class="sliders">
+      <div class="row" id="row1"><label for="r1" id="l1">-</label><input id="r1" type="range" step="1" value="0"><output id="v1">0</output></div>
+      <div class="row" id="row2" hidden><label for="r2" id="l2">-</label><input id="r2" type="range" step="1" value="0"><output id="v2">0</output></div>
+      <div class="row" id="row3" hidden><label for="r3" id="l3">-</label><input id="r3" type="range" step="1" value="0"><output id="v3">0</output></div>
+      <div class="row" id="row4" hidden><label for="r4" id="l4">-</label><input id="r4" type="range" step="1" value="0"><output id="v4">0</output></div>
+    </div>
+    <div class="orbwrap"><canvas id="orb" role="img" aria-label="回転球。ドラッグでひねりと傾きを操作します"></canvas><span class="k">球をドラッグ</span></div>
+    </div>
+    <div class="group"><span class="gl">部位</span><div class="chips" id="partChips"></div></div>
+    <div class="group"><span class="gl">表示</span><div class="chips" id="toolChips"></div></div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  var $ = function(id){ return document.getElementById(id); };
+  var D2R = Math.PI/180;
+  var stage = $('stage');
+
+  if (typeof THREE === 'undefined') {
+    stage.innerHTML = '<p class="fail">3Dライブラリを読み込めませんでした。通信状況を確認して、ページを開き直してください。</p>';
+    return;
+  }
+  var renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({antialias:true});
+  } catch (err) {
+    stage.innerHTML = '<p class="fail">この端末では3D表示を開始できませんでした。ブラウザを更新するか、別のブラウザで開いてください。</p>';
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  stage.insertBefore(renderer.domElement, stage.firstChild);
+
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xe6e4df);
+  var camera = new THREE.PerspectiveCamera(35, 1, 0.1, 60);
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x9d988c, 0.75));
+  var sun = new THREE.DirectionalLight(0xffffff, 0.85);
+  sun.position.set(2.2, 4.5, 3.2);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.left = -2; sun.shadow.camera.right = 2;
+  sun.shadow.camera.top = 2.5; sun.shadow.camera.bottom = -2;
+  sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 12;
+  scene.add(sun);
+
+  var floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({opacity:0.2}));
+  floor.rotation.x = -Math.PI/2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+  var grid = new THREE.GridHelper(6, 12, 0xb7b3a8, 0xcdcac1);
+  grid.position.y = 0.001;
+  scene.add(grid);
+
+  function V(x,y,z){ return new THREE.Vector3(x,y,z); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+  /* ---------- materials and shapes ---------- */
+  var matBase  = new THREE.MeshStandardMaterial({color:0xdcd8cf, roughness:0.85, metalness:0});
+  var matMark  = new THREE.MeshStandardMaterial({color:0xb8b3a6, roughness:0.8, metalness:0});
+  var matHot   = new THREE.MeshStandardMaterial({color:0xf0b29b, roughness:0.8, metalness:0, emissive:0x3d1409});
+  var matGhost = new THREE.MeshStandardMaterial({color:0xa39e92, roughness:0.9, metalness:0, transparent:true, opacity:0.26, depthWrite:false});
+  var edgeMat  = new THREE.LineBasicMaterial({color:0x58534a});
+  var romMat   = new THREE.MeshBasicMaterial({color:0x1f9d75, transparent:true, opacity:0.34, side:THREE.DoubleSide, depthWrite:false, depthTest:false});
+  var romLine  = new THREE.LineBasicMaterial({color:0x0f7a58, depthTest:false});
+  var dotMat   = new THREE.MeshBasicMaterial({color:0xd9481f, depthTest:false});
+  var dotRing  = new THREE.MeshBasicMaterial({color:0xffffff, depthTest:false, side:THREE.BackSide});
+  var dotGeo   = new THREE.SphereGeometry(1, 16, 12);
+
+  function cylGeo(r,h){ return new THREE.CylinderGeometry(r, r, h, 20); }
+  function boxGeo(w,h,d){ return new THREE.BoxGeometry(w, h, d); }
+  function sphGeo(r){ return new THREE.SphereGeometry(r, 18, 14); }
+  var qZ90 = new THREE.Quaternion().setFromAxisAngle(V(0,0,1), Math.PI/2);
+
+  /* surface lines (median line, contour rings) drawn as thin tubes so they stay visible at any zoom */
+  var matMask = new THREE.MeshStandardMaterial({color:0xf3f0e8, roughness:0.7, metalness:0, side:THREE.DoubleSide});
+  var lineMat = new THREE.MeshBasicMaterial({color:0xb02a2a});
+  var LE = 0.0025;
+  function densify(pts, closed, step){
+    var out = [], n = pts.length;
+    for (var i = 0; i < n; i++) {
+      var a = pts[i];
+      if (!closed && i === n-1) { out.push(a.clone()); break; }
+      var b = pts[(i+1)%n];
+      var k = Math.max(1, Math.ceil(a.distanceTo(b)/step));
+      for (var j = 0; j < k; j++) out.push(a.clone().lerp(b, j/k));
+    }
+    return out;
+  }
+  function cl(mesh, pts, closed){
+    var dp = densify(pts, closed, 0.015);
+    var curve = new THREE.CatmullRomCurve3(dp, closed, 'centripetal');
+    var t = new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(8, dp.length*2), 0.0028, 4, closed), lineMat);
+    t.userData.cl = true;
+    mesh.add(t);
+    return t;
+  }
+  function circlePts(r, plane, y){
+    var out = [];
+    for (var i = 0; i < 48; i++) {
+      var t = i/48*2*Math.PI, c = Math.cos(t)*r, s = Math.sin(t)*r;
+      out.push(plane === 'xz' ? V(c, y, s) : V(0, c, s));
+    }
+    return out;
+  }
+  function boxLines(m, w, h, d, ys){
+    cl(m, [V(0,-h/2,d/2+LE), V(0,h/2,d/2+LE)], false);
+    cl(m, [V(0,-h/2,-d/2-LE), V(0,h/2,-d/2-LE)], false);
+    ys.forEach(function(y){
+      cl(m, [V(-w/2-LE,y,-d/2-LE), V(w/2+LE,y,-d/2-LE), V(w/2+LE,y,d/2+LE), V(-w/2-LE,y,d/2+LE)], true);
+    });
+  }
+  function cylLines(m, r, h, ring){
+    cl(m, [V(0,-h/2,r+LE), V(0,h/2,r+LE)], false);
+    if (ring) cl(m, circlePts(r+LE, 'xz', 0), true);
+  }
+  function frustumGeo(rt, rb, h, k){
+    var g = new THREE.CylinderGeometry(rt, rb, h, 28);
+    g.scale(1, 1, k);
+    return g;
+  }
+  function frustumLines(m, rt, rb, h, k, ys){
+    function rad(y){ return rb + (rt - rb)*((y + h/2)/h); }
+    cl(m, [V(0,-h/2,k*rb+LE), V(0,h/2,k*rt+LE)], false);
+    cl(m, [V(0,-h/2,-k*rb-LE), V(0,h/2,-k*rt-LE)], false);
+    ys.forEach(function(y){
+      var r = rad(y) + LE, out = [];
+      for (var i = 0; i < 48; i++) { var t = i/48*2*Math.PI; out.push(V(r*Math.cos(t), y, k*r*Math.sin(t))); }
+      cl(m, out, true);
+    });
+  }
+  function headLines(m, r){
+    cl(m, circlePts(r, 'yz', 0), true);
+    cl(m, circlePts(r, 'xz', 0), true);
+  }
+
+  /* ---------- parts ---------- */
+  var parts = {};
+  var specs = [];
+  function spec(o){ specs.push(o); }
+  function mk(p, geo, pos, quat, edges, marker){
+    var m = new THREE.Mesh(geo, marker ? matMark : matBase);
+    m.position.set(pos[0], pos[1], pos[2]);
+    if (quat) m.quaternion.copy(quat);
+    m.userData.part = p.name;
+    m.userData.marker = !!marker;
+    if (edges) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo, 30), edgeMat));
+    p.J.add(m);
+    p.meshes.push(m);
+    return m;
+  }
+
+  /* cone: how far the tip may swing from its rest direction, per direction.
+     Fq: toward +z (front), Bq: toward -z, Xp / Xn: toward +x / -x of the base frame (degrees). */
+  spec({name:'rib', label:'肋骨', root:true, build:function(p){
+    var m = mk(p, frustumGeo(0.115, 0.095, 0.30, 0.64), [0,0,0], null, true);
+    frustumLines(m, 0.115, 0.095, 0.30, 0.64, [0.06, -0.07]);
+  }});
+  spec({name:'neck', label:'首', parent:'rib', attach:V(0,0.15,0), a0:V(0,1,0), L:0.07, rVis:0.2,
+    cone:{Fq:45,Bq:50,Xp:35,Xn:35}, roll:[-30,30], build:function(p){
+      cylLines(mk(p, cylGeo(0.032,0.07), [0,0.035,0], null, true), 0.032, 0.07, false);
+      mk(p, sphGeo(0.038), [0,0,0], null, false, true);
+  }});
+  spec({name:'head', label:'頭', scalable:true, parent:'neck', attach:V(0,0.07,0), a0:V(0,1,0), L:0.115, rVis:0.22,
+    cone:{Fq:35,Bq:45,Xp:30,Xn:30}, roll:[-60,60], build:function(p){
+      headLines(mk(p, new THREE.SphereGeometry(0.098,24,18), [0,0.115,0], null, false), 0.1005);
+      /* face mask: a curved plate on the front of the head */
+      var mgeo = new THREE.SphereGeometry(0.125,32,24,Math.PI/2-0.95,1.9,Math.PI/2-0.7,1.9);
+      mgeo.scale(1, 1.25, 1);
+      var mask = mk(p, mgeo, [0,0.115,0], null, true);
+      mask.userData.mask = true;
+      var mp = [];
+      for (var q = 0; q <= 12; q++) {
+        var th = (Math.PI/2 - 0.7) + 1.9*q/12;
+        mp.push(V(0, 1.25*(0.125+LE)*Math.cos(th), (0.125+LE)*Math.sin(th)));
+      }
+      cl(mask, mp, false);
+      var ep = [];
+      for (var w = 0; w <= 16; w++) {
+        var ph = (Math.PI/2 - 0.95) + 1.9*w/16;
+        ep.push(V(-(0.125+LE)*Math.cos(ph), 0, (0.125+LE)*Math.sin(ph)));
+      }
+      cl(mask, ep, false);
+  }});
+  spec({name:'pelvis', label:'骨盤', widthPelvis:true, parent:'rib', attach:V(0,-0.15,-0.035), a0:V(0,-1,0), L:0.07, rVis:0.2,
+    cone:{Fq:70,Bq:35,Xp:35,Xn:35}, roll:[-45,45], build:function(p){
+      frustumLines(mk(p, frustumGeo(0.10, 0.12, 0.14, 0.68), [0,-0.07,0.035], null, true), 0.10, 0.12, 0.14, 0.68, [0]);
+      mk(p, sphGeo(0.04), [0,0,0], null, false, true);
+  }});
+
+  [['L',1],['R',-1]].forEach(function(sd){
+    var S = sd[0], sg = sd[1], N = (S === 'L') ? '左' : '右';
+    spec({name:'clav'+S, label:N+'肩', parent:'rib', attach:V(sg*0.025,0.12,0), a0:V(sg,0,0), L:0.12, rVis:0.2, side:S, widthLink:true,
+      cone:{Fq:20,Bq:20,Xp:35,Xn:15}, roll:[0,0], build:function(p){
+        cylLines(mk(p, cylGeo(0.022,0.12), [sg*0.06,0,0], qZ90, true), 0.022, 0.12, false);
+    }});
+    spec({name:'upperArm'+S, label:N+'上腕', parent:'clav'+S, attach:V(sg*0.12,0,0), a0:V(0,-1,0), L:0.25, rVis:0.25, side:S,
+      cone:{Fq:180,Bq:60,Xp:180,Xn:30}, roll:[-90,90], build:function(p){
+        cylLines(mk(p, cylGeo(0.032,0.24), [0,-0.125,0], null, true), 0.032, 0.24, true);
+        mk(p, sphGeo(0.045), [0,0,0], null, false, true);
+    }});
+    spec({name:'forearm'+S, label:N+'前腕', parent:'upperArm'+S, attach:V(0,-0.25,0), a0:V(0,-1,0), L:0.23, rVis:0.23, side:S,
+      hinge:{psi:Math.PI, max:150, min:-15}, roll:[-80,80], build:function(p){
+        cylLines(mk(p, cylGeo(0.028,0.22), [0,-0.11,0], null, true), 0.028, 0.22, true);
+        mk(p, sphGeo(0.036), [0,0,0], null, false, true);
+    }});
+    spec({name:'hand'+S, label:N+'手', parent:'forearm'+S, attach:V(0,-0.23,0), a0:V(0,-1,0), L:0.10, rVis:0.2, side:S,
+      cone:{Fq:60,Bq:60,Xp:25,Xn:25}, roll:[0,0], build:function(p){
+        cl(mk(p, boxGeo(0.062,0.09,0.024), [0,-0.05,0], null, true), [V(0,-0.045,0.012+LE), V(0,0.045,0.012+LE)], false);
+        mk(p, sphGeo(0.026), [0,0,0], null, false, true);
+    }});
+    spec({name:'hip'+S, label:N+'付け根', parent:'pelvis', attach:V(sg*0.025,-0.11,0.035), a0:V(sg,0,0), L:0.05, rVis:0.18, side:S,
+      cone:{Fq:25,Bq:25,Xp:25,Xn:20}, roll:[0,0], build:function(p){
+        mk(p, cylGeo(0.03,0.05), [sg*0.025,0,0], qZ90, false);
+    }});
+    spec({name:'thigh'+S, label:N+'もも', parent:'hip'+S, attach:V(sg*0.05,0,0), a0:V(0,-1,0), L:0.40, rVis:0.4, side:S,
+      cone:{Fq:120,Bq:30,Xp:70,Xn:30}, roll:[-45,45], build:function(p){
+        cylLines(mk(p, cylGeo(0.052,0.39), [0,-0.2,0], null, true), 0.052, 0.39, true);
+        mk(p, sphGeo(0.055), [0,0,0], null, false, true);
+    }});
+    spec({name:'shin'+S, label:N+'すね', parent:'thigh'+S, attach:V(0,-0.40,0), a0:V(0,-1,0), L:0.38, rVis:0.38, side:S,
+      hinge:{psi:0, max:150}, roll:[0,0], build:function(p){
+        cylLines(mk(p, cylGeo(0.038,0.37), [0,-0.19,0], null, true), 0.038, 0.37, true);
+        mk(p, sphGeo(0.044), [0,0,0], null, false, true);
+    }});
+    spec({name:'foot'+S, label:N+'足', parent:'shin'+S, attach:V(0,-0.38,0), a0:V(0,0,1), ref:V(0,1,0), L:0.16, rVis:0.2, side:S,
+      cone:{Fq:20,Bq:45,Xp:20,Xn:20}, roll:[0,0], build:function(p){
+        cl(mk(p, boxGeo(0.075,0.045,0.20), [0,-0.04,0.05], null, true), [V(0,0.0225+LE,-0.10), V(0,0.0225+LE,0.10)], false);
+        mk(p, sphGeo(0.036), [0,0,0], null, false, true);
+    }});
+  });
+
+  var CHIP_ORDER = ['rib','|','clavL','clavR','neck','pelvis','|','upperArmL','upperArmR','head','hipL','hipR','|',
+    'forearmL','forearmR','thighL','thighR','|','handL','handR','shinL','shinR','|','footL','footR'];
+
+  /* base frame: its -y axis is the rest direction a0, its z axis is as close to ref as possible */
+  function baseQuat(a0, ref){
+    var by = a0.clone().negate();
+    var bx = V(0,0,0).crossVectors(by, ref).normalize();
+    var bz = V(0,0,0).crossVectors(bx, by);
+    return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(bx, by, bz));
+  }
+  /* direction in the base frame for swing angle phi from rest and heading psi (psi 0 = toward -z of the base frame) */
+  function dirVec(phi, psi){
+    var sp = Math.sin(phi);
+    return V(sp*Math.sin(psi), -Math.cos(phi), -sp*Math.cos(psi));
+  }
+  function phiMax(p, psi){
+    if (p.hinge) return p.hinge.max;
+    var s = Math.sin(psi), c = Math.cos(psi);
+    var su = Math.max(0.001, s >= 0 ? p.cone.Xp : p.cone.Xn);
+    var sw = Math.max(0.001, c >= 0 ? p.cone.Bq : p.cone.Fq);
+    var m = 1/Math.sqrt((s/su)*(s/su) + (c/sw)*(c/sw));
+    return Math.min(Math.PI, m);
+  }
+
+  function makePart(s){
+    var p = {name:s.name, label:s.label, spec:s, parent:null, children:[], root:!!s.root, placed:!!s.root,
+             meshes:[], state:{phi:0, psi:0, roll:0}, scalable:!!s.scalable, size:1, widthLink:!!s.widthLink, widthPelvis:!!s.widthPelvis, wscale:1, hipInset:0.0407};
+    var J = new THREE.Group();
+    p.J = J;
+    if (s.root) {
+      J.position.set(0, 1.10, 0);
+      J.rotation.order = 'YXZ';
+      scene.add(J);
+    } else {
+      p.parent = parts[s.parent];
+      p.parent.children.push(p);
+      J.position.copy(s.attach);
+      p.parent.J.add(J);
+      p.Qb = baseQuat(s.a0.clone().normalize(), s.ref || V(0,0,1));
+      p.QbInv = p.Qb.clone().invert();
+      p.rVis = s.rVis || s.L;
+      var right = (s.side === 'R');
+      if (s.cone) {
+        var c = s.cone;
+        p.cone = {Fq:c.Fq*D2R, Bq:c.Bq*D2R, Xp:(right ? c.Xn : c.Xp)*D2R, Xn:(right ? c.Xp : c.Xn)*D2R};
+      } else {
+        p.hinge = {psi:s.hinge.psi, max:s.hinge.max*D2R, min:(s.hinge.min || 0)*D2R};
+        p.state.psi = s.hinge.psi;
+      }
+      p.roll = right ? [-s.roll[1]*D2R, -s.roll[0]*D2R] : [s.roll[0]*D2R, s.roll[1]*D2R];
+    }
+    s.build(p);
+    parts[s.name] = p;
+    if (!p.root) buildGuide(p);
+    return p;
+  }
+
+  function buildGuide(p){
+    var g = new THREE.Group();
+    g.position.copy(p.J.position);
+    g.visible = false;
+    p.J.parent.add(g);
+    var rv = p.rVis, pos = [], idx = [], outline = [], i, j, k;
+    function pt(phi, psi){ return dirVec(phi, psi).applyQuaternion(p.Qb).multiplyScalar(rv); }
+    function put(v){ pos.push(v.x, v.y, v.z); }
+    if (p.hinge) {
+      var N = 30;
+      put(V(0,0,0));
+      outline.push(V(0,0,0));
+      for (i = 0; i <= N; i++) { var a = pt(p.hinge.min + (p.hinge.max - p.hinge.min)*i/N, p.hinge.psi); put(a); outline.push(a); }
+      for (i = 1; i <= N; i++) idx.push(0, i, i+1);
+      outline.push(V(0,0,0));
+    } else {
+      var RN = 8, M = 64;
+      put(pt(0,0));
+      for (k = 1; k <= RN; k++) {
+        for (j = 0; j < M; j++) {
+          var psi = j/M*2*Math.PI;
+          var b = pt(phiMax(p, psi)*k/RN, psi);
+          put(b);
+          if (k === RN) outline.push(b);
+        }
+      }
+      for (j = 0; j < M; j++) idx.push(0, 1+j, 1+(j+1)%M);
+      for (k = 1; k < RN; k++) {
+        for (j = 0; j < M; j++) {
+          var i0 = 1+(k-1)*M+j, i1 = 1+(k-1)*M+(j+1)%M, i2 = 1+k*M+j, i3 = 1+k*M+(j+1)%M;
+          idx.push(i0, i2, i1, i1, i2, i3);
+        }
+      }
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    var area = new THREE.Mesh(geo, romMat);
+    area.renderOrder = 10;
+    g.add(area);
+    var line = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(outline), romLine);
+    line.renderOrder = 11;
+    g.add(line);
+    var dot = new THREE.Mesh(dotGeo, dotMat);
+    dot.renderOrder = 21;
+    dot.userData.part = p.name;
+    var ring = new THREE.Mesh(dotGeo, dotRing);
+    ring.scale.setScalar(1.35);
+    ring.renderOrder = 20;
+    dot.add(ring);
+    g.add(dot);
+    p.guide = g;
+    p.dot = dot;
+    p.area = area;
+  }
+
+  specs.forEach(makePart);
+  var partList = Object.keys(parts).map(function(n){ return parts[n]; });
+  var rib = parts.rib;
+
+  function applyState(p){
+    if (p.root) return;
+    var s = p.state;
+    var d = dirVec(s.phi, s.psi);
+    var qs = new THREE.Quaternion().setFromUnitVectors(V(0,-1,0), d);
+    var qr = new THREE.Quaternion().setFromAxisAngle(V(0,-1,0), s.roll);
+    p.J.quaternion.copy(p.Qb).multiply(qs).multiply(qr).multiply(p.QbInv);
+    p.dot.position.copy(d).applyQuaternion(p.Qb).multiplyScalar(p.rVis);
+  }
+  function setShoulderWidth(k){
+    ['L','R'].forEach(function(S){
+      var c = parts['clav'+S], u = parts['upperArm'+S];
+      var sg = S === 'L' ? 1 : -1;
+      c.wscale = k;
+      c.meshes[0].scale.y = k;
+      c.meshes[0].position.x = sg*0.06*k;
+      u.J.position.x = sg*0.12*k;
+      u.guide.position.copy(u.J.position);
+    });
+  }
+  /* pelvis width moves the hip joints with it, so the thigh roots follow */
+  /* the hip joint sits a fixed distance inside the outer edge of the pelvis, not at a fixed ratio from its centre */
+  function updateHips(){
+    var pv = parts.pelvis;
+    var outer = 0.1157*pv.wscale;
+    var x = Math.max(0.03, outer - pv.hipInset);
+    var len = x - 0.025;
+    ['L','R'].forEach(function(S){
+      var sg = S === 'L' ? 1 : -1;
+      var h = parts['hip'+S], t = parts['thigh'+S];
+      var k = len/0.05;
+      h.meshes[0].scale.y = k;
+      h.meshes[0].position.x = sg*0.025*k;
+      t.J.position.x = sg*len;
+      t.guide.position.copy(t.J.position);
+    });
+  }
+  function setPelvisWidth(k){
+    var pv = parts.pelvis;
+    pv.wscale = k;
+    pv.meshes[0].scale.x = k;
+    updateHips();
+  }
+  function setHipInset(v){
+    parts.pelvis.hipInset = v;
+    updateHips();
+  }
+  function resetPart(p){
+    if (p.root) {
+      p.J.position.set(0, 1.10, 0);
+      p.J.rotation.set(0,0,0);
+      p.J.scale.setScalar(1);
+      return;
+    }
+    p.state.phi = 0;
+    p.state.psi = p.hinge ? p.hinge.psi : 0;
+    p.state.roll = 0;
+    applyState(p);
+  }
+  partList.forEach(function(p){ resetPart(p); });
+
+  /* ---------- camera ---------- */
+  var target = V(0,1.10,0);
+  var yaw = 0.4, pitch = 0.14, dist = 2.2;
+  function updateCamera(){
+    var cp = Math.cos(pitch);
+    camera.position.set(target.x + dist*Math.sin(yaw)*cp, target.y + dist*Math.sin(pitch), target.z + dist*Math.cos(yaw)*cp);
+    camera.lookAt(target);
+    camera.updateMatrixWorld();
+  }
+  var dirty = true;
+  function resize(){
+    var w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w/h;
+    camera.updateProjectionMatrix();
+    dirty = true;
+  }
+  new ResizeObserver(resize).observe(stage);
+  resize();
+
+  function fitView(){
+    var box = new THREE.Box3();
+    partList.forEach(function(p){
+      if (!p.placed) return;
+      p.J.updateWorldMatrix(true, true);
+      p.meshes.forEach(function(m){ box.expandByObject(m); });
+    });
+    if (box.isEmpty()) return;
+    var c = box.getCenter(V(0,0,0)), sz = box.getSize(V(0,0,0));
+    var t = Math.tan(camera.fov*D2R/2);
+    var need = Math.max(sz.y/(2*t), sz.x/(2*t*camera.aspect), sz.z/(2*t*camera.aspect));
+    target.copy(c);
+    dist = clamp(need*1.5 + 0.2, 1.6, 9);
+    dirty = true;
+  }
+
+  /* ---------- state: selection, availability ---------- */
+  var sel = rib;
+  var guidesOn = true, markersOn = true, linesOn = true;
+  var AXIDS = [1,2,3,4];
+
+  function available(p){ return !p.parent || p.parent.placed; }
+
+  function setRow(i, label, min, max, val, unit){
+    $('row'+i).hidden = false;
+    $('l'+i).textContent = label;
+    var inp = $('r'+i);
+    inp.min = min; inp.max = max; inp.value = val;
+    inp.disabled = (min === max);
+    $('v'+i).textContent = val + unit;
+  }
+  function hideRow(i){ $('row'+i).hidden = true; }
+  function deg(r){ return Math.round(r/D2R); }
+
+  function syncUI(){
+    if (sel.root) {
+      setRow(1, '大きさ', 30, 160, Math.round(rib.J.scale.x*100), '%');
+      setRow(2, '前後の傾き', -90, 90, deg(rib.J.rotation.x), '°');
+      setRow(3, 'ひねり', -180, 180, deg(rib.J.rotation.y), '°');
+      setRow(4, '横の傾き', -90, 90, deg(rib.J.rotation.z), '°');
+    } else {
+      setRow(1, 'ひねり', deg(sel.roll[0]), deg(sel.roll[1]), deg(sel.state.roll), '°');
+      if (sel.scalable) setRow(2, '大きさ', 60, 140, Math.round(sel.size*100), '%');
+      else if (sel.widthLink) setRow(2, '肩幅(左右)', 40, 150, Math.round(sel.wscale*100), '%');
+      else if (sel.widthPelvis) setRow(2, '骨盤の横幅', 60, 150, Math.round(sel.wscale*100), '%');
+      else hideRow(2);
+      if (sel.widthPelvis) setRow(3, '付け根の内寄り', 0, 80, Math.round(sel.hipInset*1000), 'mm'); else hideRow(3);
+      hideRow(4);
+    }
+  }
+  function configUI(){
+    $('selLabel').textContent = sel.label;
+    $('selInfo').textContent = sel.root
+      ? 'ドラッグで画面上の位置を決めます。'
+      : (sel.hinge ? '緑の扇の中をドラッグ、または2回タップして曲げます。' : '緑の範囲の中をドラッグ、または2回タップして向きを決めます。');
+    $('del').disabled = sel.root;
+    syncUI();
+  }
+  var chipEls = {};
+  function buildChips(){
+    CHIP_ORDER.forEach(function(n){
+      if (n === '|') {
+        var s = document.createElement('span');
+        s.className = 'sep';
+        $('partChips').appendChild(s);
+        return;
+      }
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.textContent = parts[n].label;
+      b.addEventListener('click', function(){ select(n); });
+      $('partChips').appendChild(b);
+      chipEls[n] = b;
+    });
+  }
+  function refresh(){
+    partList.forEach(function(p){
+      var avail = available(p);
+      p.meshes.forEach(function(m){
+        var kids = m.children;
+        if (p.placed) {
+          m.visible = !(m.userData.marker && !markersOn);
+          m.material = (p === sel) ? matHot : (m.userData.marker ? matMark : (m.userData.mask ? matMask : matBase));
+          m.castShadow = true;
+          kids.forEach(function(c){ c.visible = c.userData.cl ? linesOn : true; });
+        } else if (avail && guidesOn) {
+          m.visible = !m.userData.marker;
+          m.material = matGhost;
+          m.castShadow = false;
+          kids.forEach(function(c){ c.visible = false; });
+        } else {
+          m.visible = false;
+        }
+      });
+      if (p.guide) {
+        var show = guidesOn && p === sel && p.placed;
+        p.guide.visible = show;
+        p.dot.visible = show;
+      }
+      var chip = chipEls[p.name];
+      chip.disabled = !avail;
+      chip.setAttribute('aria-pressed', p === sel ? 'true' : 'false');
+      chip.classList.toggle('placed', p.placed);
+      chip.classList.toggle('avail', avail && !p.placed);
+    });
+    dirty = true;
+  }
+  function select(name){
+    var p = parts[name];
+    if (!p || !available(p)) return;
+    if (!p.placed) { p.placed = true; resetPart(p); }
+    sel = p;
+    configUI();
+    refresh();
+  }
+  function removePart(p){
+    if (p.root) return;
+    p.placed = false;
+    p.size = 1;
+    p.J.scale.setScalar(1);
+    resetPart(p);
+    p.children.forEach(removePart);
+  }
+  $('del').addEventListener('click', function(){
+    if (sel.root) return;
+    var parent = sel.parent;
+    removePart(sel);
+    select(parent.name);
+  });
+  $('jReset').addEventListener('click', function(){
+    resetPart(sel);
+    syncUI();
+    dirty = true;
+  });
+  $('fold').addEventListener('click', function(){
+    var open = $('fold').getAttribute('aria-expanded') === 'true';
+    $('fold').setAttribute('aria-expanded', open ? 'false' : 'true');
+    $('fold').setAttribute('aria-label', open ? 'パネルを開く' : 'パネルを折りたたむ');
+    $('body').hidden = open;
+  });
+
+  /* sliders */
+  function onSlider(i){
+    var inp = $('r'+i);
+    var v = Number(inp.value);
+    if (sel.root) {
+      if (i === 1) { rib.J.scale.setScalar(v/100); $('v1').textContent = v + '%'; }
+      else {
+        var ax = (i === 2) ? 'x' : (i === 3 ? 'y' : 'z');
+        rib.J.rotation[ax] = v*D2R;
+        $('v'+i).textContent = v + '°';
+      }
+    } else if (i === 1) {
+      sel.state.roll = v*D2R;
+      $('v1').textContent = v + '°';
+      applyState(sel);
+    } else if (i === 2 && sel.scalable) {
+      sel.size = v/100;
+      sel.J.scale.setScalar(sel.size);
+      $('v2').textContent = v + '%';
+    } else if (i === 2 && sel.widthLink) {
+      setShoulderWidth(v/100);
+      $('v2').textContent = v + '%';
+    } else if (i === 2 && sel.widthPelvis) {
+      setPelvisWidth(v/100);
+      $('v2').textContent = v + '%';
+    } else if (i === 3 && sel.widthPelvis) {
+      setHipInset(v/1000);
+      $('v3').textContent = v + 'mm';
+    }
+    dirty = true;
+  }
+  AXIDS.forEach(function(i){ $('r'+i).addEventListener('input', function(){ onSlider(i); }); });
+
+  /* view / display chips */
+  function toolChip(text, pressed, fn){
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.textContent = text;
+    if (pressed !== null) b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    b.addEventListener('click', function(){ fn(b); });
+    $('toolChips').appendChild(b);
+  }
+  toolChip('全体を表示', null, function(){ fitView(); });
+  [['正面',0.0,0.12],['横',Math.PI/2,0.12],['背面',Math.PI,0.12],['上',0.0,1.35]].forEach(function(v){
+    toolChip(v[0], null, function(){ yaw = v[1]; pitch = v[2]; dirty = true; });
+  });
+  toolChip('ガイド', true, function(b){
+    guidesOn = !guidesOn;
+    b.setAttribute('aria-pressed', guidesOn ? 'true' : 'false');
+    $('legend').hidden = !guidesOn;
+    refresh();
+  });
+  toolChip('正中線', true, function(b){
+    linesOn = !linesOn;
+    b.setAttribute('aria-pressed', linesOn ? 'true' : 'false');
+    refresh();
+  });
+  toolChip('関節の玉', true, function(b){
+    markersOn = !markersOn;
+    b.setAttribute('aria-pressed', markersOn ? 'true' : 'false');
+    refresh();
+  });
+  toolChip('格子', true, function(b){
+    var on = b.getAttribute('aria-pressed') !== 'true';
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    grid.visible = on; floor.visible = on;
+    dirty = true;
+  });
+
+  /* ---------- direct manipulation ---------- */
+  var raycaster = new THREE.Raycaster();
+  var ndc = new THREE.Vector2();
+  function setRay(cx, cy){
+    var rect = renderer.domElement.getBoundingClientRect();
+    ndc.set(((cx - rect.left)/rect.width)*2 - 1, -((cy - rect.top)/rect.height)*2 + 1);
+    updateCamera();
+    raycaster.setFromCamera(ndc, camera);
+  }
+  function pickPart(ev){
+    setRay(ev.clientX, ev.clientY);
+    var list = [];
+    partList.forEach(function(p){ p.meshes.forEach(function(m){ if (m.visible) list.push(m); }); });
+    if (sel.dot && sel.dot.visible) list.push(sel.dot);
+    var hits = raycaster.intersectObjects(list, false);
+    if (!hits.length) return null;
+    for (var i = 0; i < hits.length; i++) if (sel.dot && hits[i].object === sel.dot) return sel.name;
+    return hits[0].object.userData.part;
+  }
+  function screenDelta(p, dx, dy){
+    var unit = 2*camera.position.distanceTo(p)*Math.tan(camera.fov*D2R/2)/Math.max(1, stage.clientHeight);
+    var right = V(1,0,0).applyQuaternion(camera.quaternion);
+    var up = V(0,1,0).applyQuaternion(camera.quaternion);
+    return right.multiplyScalar(dx*unit).addScaledVector(up, -dy*unit);
+  }
+
+  /* Point the part toward the finger, kept inside its range of motion. */
+  function dragPart(p, cx, cy){
+    setRay(cx, cy);
+    p.guide.updateWorldMatrix(true, false);
+    var C = V(0,0,0).setFromMatrixPosition(p.guide.matrixWorld);
+    var ws = p.J.parent.getWorldScale(V(0,0,0)).x;
+    var R = p.rVis*ws;
+    var ray = raycaster.ray;
+    var oc = ray.origin.clone().sub(C);
+    var b = oc.dot(ray.direction);
+    var c = oc.lengthSq() - R*R;
+    var disc = b*b - c;
+    var P;
+    if (disc >= 0) {
+      var sq = Math.sqrt(disc);
+      var P1 = ray.at(-b - sq, V(0,0,0)), P2 = ray.at(-b + sq, V(0,0,0));
+      p.dot.updateWorldMatrix(true, false);
+      var cur = V(0,0,0).setFromMatrixPosition(p.dot.matrixWorld);
+      P = (P1.distanceTo(cur) <= P2.distanceTo(cur)) ? P1 : P2;
+    } else {
+      P = ray.at(Math.max(0, -b), V(0,0,0));
+    }
+    var dw = P.sub(C);
+    if (dw.lengthSq() < 1e-10) return;
+    dw.normalize();
+    aimPart(p, dw);
+  }
+
+  /* Point the part along a world-space direction, kept inside its range of motion. */
+  function aimPart(p, dw){
+    var pq = new THREE.Quaternion();
+    p.J.parent.getWorldQuaternion(pq);
+    var dB = dw.clone().applyQuaternion(pq.invert()).applyQuaternion(p.QbInv);
+    var s = p.state;
+    if (p.hinge) {
+      var hx = -Math.cos(p.hinge.psi);
+      var a = dB.z*hx;
+      var bb = -dB.y;
+      s.phi = clamp(Math.atan2(a, bb), p.hinge.min, p.hinge.max);
+    } else {
+      var phi = Math.acos(clamp(-dB.y, -1, 1));
+      if (phi > 1e-3) s.psi = Math.atan2(dB.x, -dB.z);
+      s.phi = Math.min(phi, phiMax(p, s.psi));
+    }
+    applyState(p);
+  }
+  function aimAtPoint(p, P){
+    p.guide.updateWorldMatrix(true, false);
+    var C = V(0,0,0).setFromMatrixPosition(p.guide.matrixWorld);
+    var dw = P.clone().sub(C);
+    if (dw.lengthSq() < 1e-10) return;
+    aimPart(p, dw.normalize());
+    syncUI();
+    dirty = true;
+  }
+  /* world point where a tap lands on the green range of the selected part, or null */
+  function romPoint(ev){
+    if (!sel.guide || !sel.guide.visible) return null;
+    setRay(ev.clientX, ev.clientY);
+    var h = raycaster.intersectObject(sel.area, false);
+    return h.length ? h[0].point.clone() : null;
+  }
+
+  var cv = renderer.domElement;
+  var ptrs = new Map();
+  var mode = null, startX = 0, startY = 0, moved = false, pinchD = 0, downPart = null, downRom = null, lastTap = null;
+  function pdist(){
+    var a = Array.from(ptrs.values());
+    return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+  }
+  cv.addEventListener('pointerdown', function(e){
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+    $('hint').hidden = true;
+    if (ptrs.size === 1) {
+      startX = e.clientX; startY = e.clientY; moved = false;
+      downPart = pickPart(e);
+      downRom = romPoint(e);
+      if (downRom && downPart && sel.parent && downPart === sel.parent.name) downPart = null;
+      mode = (downPart && downPart === sel.name) ? 'place' : 'orbit';
+    } else if (ptrs.size === 2) {
+      mode = 'pinch'; moved = true; pinchD = pdist();
+    }
+  });
+  cv.addEventListener('pointermove', function(e){
+    var q = ptrs.get(e.pointerId);
+    if (!q) return;
+    var dx = e.clientX - q.x, dy = e.clientY - q.y;
+    q.x = e.clientX; q.y = e.clientY;
+    if (mode === 'pinch' && ptrs.size >= 2) {
+      var d = pdist();
+      if (pinchD > 0 && d > 0) dist = clamp(dist*pinchD/d, 0.8, 9);
+      pinchD = d; dirty = true;
+      return;
+    }
+    if (!moved && Math.hypot(e.clientX - startX, e.clientY - startY) < 6) return;
+    moved = true;
+    if (mode === 'place') {
+      if (sel.root) {
+        updateCamera();
+        rib.J.position.add(screenDelta(rib.J.position, dx, dy));
+      } else {
+        dragPart(sel, e.clientX, e.clientY);
+        syncUI();
+      }
+    } else if (mode === 'orbit') {
+      yaw -= dx*0.008;
+      pitch = clamp(pitch + dy*0.006, -1.2, 1.4);
+    }
+    dirty = true;
+  });
+  function endPtr(e){
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.delete(e.pointerId);
+    if (e.type === 'pointerup' && !moved && ptrs.size === 0 && mode !== 'pinch') {
+      var now = performance.now();
+      var changes = !!(downPart && downPart !== sel.name);
+      if (lastTap && lastTap.ok && downRom && now - lastTap.t < 420 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 32) {
+        aimAtPoint(sel, downRom);
+        lastTap = null;
+      } else {
+        lastTap = {t:now, x:e.clientX, y:e.clientY, ok:(!changes && !!downRom)};
+        if (downPart) select(downPart);
+      }
+    }
+    if (ptrs.size < 2 && mode === 'pinch') mode = null;
+    if (ptrs.size === 0) mode = null;
+  }
+  cv.addEventListener('pointerup', endPtr);
+  cv.addEventListener('pointercancel', endPtr);
+  cv.addEventListener('wheel', function(e){
+    e.preventDefault();
+    dist = clamp(dist*Math.exp(e.deltaY*0.001), 0.8, 9);
+    dirty = true;
+  }, {passive:false});
+
+  /* ---------- orientation sphere ---------- */
+  var orb = $('orb'), octx = orb.getContext('2d'), ORB = 88;
+  (function(){
+    var dpr = Math.min(window.devicePixelRatio || 1, 3);
+    orb.width = ORB*dpr; orb.height = ORB*dpr;
+    orb.style.width = ORB + 'px'; orb.style.height = ORB + 'px';
+    octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  })();
+  function drawOrb(){
+    var c = ORB/2, R = c - 7;
+    octx.clearRect(0, 0, ORB, ORB);
+    octx.save();
+    octx.setLineDash([2, 3]);
+    octx.beginPath(); octx.arc(c, c, R + 4, 0, 2*Math.PI);
+    octx.strokeStyle = '#b9b4a8'; octx.lineWidth = 1; octx.stroke();
+    octx.restore();
+    var g = octx.createRadialGradient(c - R*0.35, c - R*0.4, R*0.1, c, c, R);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#d6d2c8');
+    octx.beginPath(); octx.arc(c, c, R, 0, 2*Math.PI);
+    octx.fillStyle = g; octx.fill();
+    octx.lineWidth = 1; octx.strokeStyle = '#8f8a7e'; octx.stroke();
+    updateCamera();
+    var jq = new THREE.Quaternion();
+    sel.J.getWorldQuaternion(jq);
+    var full = camera.quaternion.clone().invert().multiply(jq);
+    function proj(u){
+      var v = u.clone().applyQuaternion(full);
+      return {x:c + R*v.x, y:c - R*v.y, z:v.z};
+    }
+    [['xz','#2f6fb0'], ['yz','#1f9d75'], ['xy','#b02a2a']].forEach(function(r){
+      var prev = null;
+      for (var i = 0; i <= 64; i++) {
+        var t = i/64*2*Math.PI, cs = Math.cos(t), sn = Math.sin(t);
+        var u = r[0] === 'xz' ? V(cs,0,sn) : (r[0] === 'yz' ? V(0,cs,sn) : V(cs,sn,0));
+        var pt = proj(u);
+        if (prev) {
+          var front = (prev.z + pt.z) >= 0;
+          octx.beginPath(); octx.moveTo(prev.x, prev.y); octx.lineTo(pt.x, pt.y);
+          octx.strokeStyle = r[1]; octx.globalAlpha = front ? 0.95 : 0.22; octx.lineWidth = front ? 1.6 : 1;
+          octx.stroke();
+        }
+        prev = pt;
+      }
+    });
+    octx.globalAlpha = 1;
+    [[V(0,0,1), '#d9481f', '前'], [V(0,1,0), '#23221e', '上']].forEach(function(m){
+      var pt = proj(m[0]);
+      octx.globalAlpha = pt.z >= 0 ? 1 : 0.3;
+      octx.beginPath(); octx.arc(pt.x, pt.y, 6, 0, 2*Math.PI);
+      octx.fillStyle = m[1]; octx.fill();
+      octx.fillStyle = '#ffffff'; octx.font = '9px sans-serif';
+      octx.textAlign = 'center'; octx.textBaseline = 'middle';
+      octx.fillText(m[2], pt.x, pt.y + 0.5);
+    });
+    octx.globalAlpha = 1;
+  }
+
+  /* Rotate the selected part by dw (a rotation in world space); the swing is clamped to its range of motion. */
+  function sphereRotate(dw){
+    if (sel.root) {
+      rib.J.quaternion.premultiply(dw);
+      return;
+    }
+    var p = sel;
+    var pq = new THREE.Quaternion();
+    p.J.parent.getWorldQuaternion(pq);
+    var loc = pq.clone().invert().multiply(dw).multiply(pq);
+    var jq = loc.multiply(p.J.quaternion);
+    var rB = p.QbInv.clone().multiply(jq).multiply(p.Qb);
+    var ax = V(0,-1,0);
+    var sAx = ax.x*rB.x + ax.y*rB.y + ax.z*rB.z;
+    var roll = 2*Math.atan2(sAx, rB.w);
+    var tl = Math.sqrt(sAx*sAx + rB.w*rB.w);
+    var tw = tl < 1e-6 ? new THREE.Quaternion(0,0,0,1)
+                       : new THREE.Quaternion(ax.x*sAx/tl, ax.y*sAx/tl, ax.z*sAx/tl, rB.w/tl);
+    var sw = rB.clone().multiply(tw.invert());
+    var d = ax.clone().applyQuaternion(sw);
+    var t = Math.PI*2;
+    roll = ((roll + Math.PI) % t + t) % t - Math.PI;
+    var s = p.state;
+    if (p.hinge) {
+      var hx = -Math.cos(p.hinge.psi);
+      s.phi = clamp(Math.atan2(d.z*hx, -d.y), p.hinge.min, p.hinge.max);
+    } else {
+      var phi = Math.acos(clamp(-d.y, -1, 1));
+      if (phi > 1e-3) s.psi = Math.atan2(d.x, -d.z);
+      s.phi = Math.min(phi, phiMax(p, s.psi));
+    }
+    s.roll = clamp(roll, p.roll[0], p.roll[1]);
+    applyState(p);
+  }
+
+  var orbDrag = null;
+  orb.addEventListener('pointerdown', function(e){
+    try { orb.setPointerCapture(e.pointerId); } catch (err) {}
+    var r = orb.getBoundingClientRect();
+    var cx = r.left + r.width/2, cy = r.top + r.height/2;
+    var dx = e.clientX - cx, dy = e.clientY - cy;
+    orbDrag = {x:e.clientX, y:e.clientY, cx:cx, cy:cy, rim:Math.hypot(dx, dy) > (ORB/2 - 7)*0.78, ang:Math.atan2(-dy, dx)};
+  });
+  orb.addEventListener('pointermove', function(e){
+    if (!orbDrag) return;
+    updateCamera();
+    var q = new THREE.Quaternion();
+    if (orbDrag.rim) {
+      var a = Math.atan2(-(e.clientY - orbDrag.cy), e.clientX - orbDrag.cx);
+      var da = a - orbDrag.ang;
+      if (da > Math.PI) da -= 2*Math.PI;
+      if (da < -Math.PI) da += 2*Math.PI;
+      orbDrag.ang = a;
+      q.setFromAxisAngle(V(0,0,1).applyQuaternion(camera.quaternion), da);
+    } else {
+      var k = Math.PI/(2*(ORB/2 - 7));
+      var ddx = e.clientX - orbDrag.x, ddy = e.clientY - orbDrag.y;
+      orbDrag.x = e.clientX; orbDrag.y = e.clientY;
+      var qa = new THREE.Quaternion().setFromAxisAngle(V(0,1,0).applyQuaternion(camera.quaternion), ddx*k);
+      var qb = new THREE.Quaternion().setFromAxisAngle(V(1,0,0).applyQuaternion(camera.quaternion), ddy*k);
+      q.copy(qa).multiply(qb);
+    }
+    sphereRotate(q);
+    syncUI();
+    dirty = true;
+  });
+  function orbEnd(){ orbDrag = null; }
+  orb.addEventListener('pointerup', orbEnd);
+  orb.addEventListener('pointercancel', orbEnd);
+
+  /* ---------- loop ---------- */
+  function updateGuide(){
+    if (!sel.dot || !sel.dot.visible) return;
+    sel.dot.updateWorldMatrix(true, false);
+    var wp = V(0,0,0).setFromMatrixPosition(sel.dot.matrixWorld);
+    var ws = sel.J.parent.getWorldScale(V(0,0,0)).x;
+    sel.dot.scale.setScalar(0.03*camera.position.distanceTo(wp)/4.3/Math.max(0.01, ws)*1.6);
+  }
+  function frame(){
+    if (dirty) {
+      dirty = false;
+      updateCamera();
+      updateGuide();
+      renderer.render(scene, camera);
+      drawOrb();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  buildChips();
+  configUI();
+  refresh();
+  fitView();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
