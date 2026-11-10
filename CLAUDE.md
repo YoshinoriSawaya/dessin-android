@@ -4,7 +4,7 @@
 
 ## 判断の拠り所
 - 構図・下絵用。出力はスクリーンショットで足りる。見た目の凝りより操作感を優先する
-- 仕様の正典は `docs/architecture.md`。Web版(three.js)の挙動が参照実装
+- 仕様の正典は `docs/architecture.md` と Android 版のコード。Web版(three.js、`docs/web-reference.html`)は v1 までの参照実装で、今後は使わない
 - 同じ内容を複数箇所に書かない。迷ったら README=事実、architecture=設計、issues=経緯
 
 ## 技術方針
@@ -17,6 +17,7 @@
 - UI・GL描画は手動確認。結果はタスクの検証結果に書く。テスト先行を外した場合は理由を一言残す
 - バグ修正はまず再現テストを書く
 - 実装に合わせてテストを書き換えて通すのは禁止。変更するなら理由を説明する
+- Web版との照合テストは v1 で役目を終えた。仕様の変更は Issue ごとにテストを書いて確かめる
 
 ## 運用
 - ドキュメントは `docs/` に置く(ルートは CLAUDE.md・README.md・CHANGELOG.md のみ)

@@ -4,6 +4,7 @@ import com.yswy.dessin.core.golden.GoldenState
 import com.yswy.dessin.core.math.Quat
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Ignore
 import org.junit.Test
 import kotlin.math.abs
 
@@ -11,6 +12,7 @@ import kotlin.math.abs
  * Web版と同じ操作を Skeleton に加え、各操作のあとの全関節がWeb版と一致することを確かめる(E01-10)。
  * データは tools/golden の generate.mjs が docs/web-reference.html を動かして作る。
  */
+@Ignore("Web版との照合は v1 で完了(2026-11-11)。E04 以降は仕様が Web版と異なる。docs/development.md を参照")
 class WebGoldenTest {
     private val tol = 1e-6
 

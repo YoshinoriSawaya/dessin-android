@@ -30,7 +30,7 @@
 頭の大きさ、肩幅、骨盤の横幅、股関節の付け根の内寄り。
 
 ## 参照実装
-Web版 `docs/web-reference.html`(three.js r128、単一HTML)。寸法の数値や可動域の制限値はそこを正とする。
+v1 までは Web版 `docs/web-reference.html`(three.js r128、単一HTML)を参照実装とし、寸法・可動域・操作の規則を移植して照合テストで一致を確かめた。Web版は今後使わない(2026-11-11)。v1 以降の仕様は、この文書と Android 版のコード(`:core` の `PartSpecs` など)を正とする。
 
 ## 依存ライブラリ
 | ライブラリ | 理由 |

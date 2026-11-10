@@ -7,6 +7,7 @@ import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.render.DisplayOptions
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Ignore
 import org.junit.Test
 import kotlin.math.abs
 
@@ -14,6 +15,7 @@ import kotlin.math.abs
  * Web版の pickPart・romPoint・pointerdown の規則と同じ結果になることを確かめる(E02-05)。
  * データは tools/golden の generate.mjs が作る。
  */
+@Ignore("Web版との照合は v1 で完了(2026-11-11)。E04 以降は仕様が Web版と異なる。docs/development.md を参照")
 class PickGoldenTest {
     private val tol = 1e-6
 
