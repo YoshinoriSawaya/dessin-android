@@ -45,6 +45,7 @@ import com.yswy.dessin.core.editor.PartChip
 import com.yswy.dessin.core.editor.Slider
 import com.yswy.dessin.core.editor.SliderKind
 import com.yswy.dessin.core.editor.sliders
+import com.yswy.dessin.core.math.Quat
 import kotlin.math.roundToInt
 
 /** 色は Web版の CSS の値 */
@@ -64,11 +65,12 @@ class PanelActions(
     val onRemove: () -> Unit,
     val onTogglePanel: () -> Unit,
     val onSlider: (SliderKind, Int) -> Unit,
+    val onOrb: (Quat) -> Unit,
 )
 
 /**
  * 下の操作パネル(Web版の #panel)。選択中の部位、向きを戻す・外す・折りたたみ、説明、スライダー、部位チップ。
- * tools には「表示」の段に並べるボタンを渡す(E02-10 で整える)。オーブは E02-09。
+ * 回転オーブはスライダーの右に置く。tools には「表示」の段に並べるボタンを渡す(E02-10 で整える)。
  */
 @Composable
 fun ControlPanel(state: EditorState, actions: PanelActions, modifier: Modifier = Modifier, tools: @Composable () -> Unit) {
@@ -84,8 +86,12 @@ fun ControlPanel(state: EditorState, actions: PanelActions, modifier: Modifier =
         }
         if (state.panelOpen) {
             Text(state.selectionInfo, fontSize = 12.sp, color = Palette.Muted, lineHeight = 18.sp, modifier = Modifier.padding(top = 4.dp))
-            Column(Modifier.padding(top = 2.dp)) {
-                state.sliders.forEach { SliderRow(it, actions.onSlider) }
+            // スライダーと回転オーブを横に並べる(Web版の .ctl)
+            Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.weight(1f)) {
+                    state.sliders.forEach { SliderRow(it, actions.onSlider) }
+                }
+                OrbView(state, actions.onOrb)
             }
             Group("部位") {
                 state.partChips.forEachIndexed { i, group ->
@@ -105,7 +111,7 @@ fun ControlPanel(state: EditorState, actions: PanelActions, modifier: Modifier =
 private fun SliderRow(slider: Slider, onChange: (SliderKind, Int) -> Unit) {
     val colors = SliderDefaults.colors(thumbColor = Palette.Accent, activeTrackColor = Palette.Accent, inactiveTrackColor = Palette.Line)
     Row(Modifier.fillMaxWidth().heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(slider.label, fontSize = 13.sp, color = Palette.Ink, maxLines = 1, modifier = Modifier.width(104.dp))
+        Text(slider.label, fontSize = 13.sp, color = Palette.Ink, maxLines = 1, modifier = Modifier.width(96.dp))
         androidx.compose.material3.Slider(
             value = slider.value.toFloat(),
             onValueChange = { v -> val i = v.roundToInt(); if (i != slider.value) onChange(slider.kind, i) },
@@ -126,7 +132,7 @@ private fun SliderRow(slider: Slider, onChange: (SliderKind, Int) -> Unit) {
                 )
             },
         )
-        Text("${slider.value}${slider.unit}", fontSize = 13.sp, color = Palette.Muted, textAlign = TextAlign.End, maxLines = 1, modifier = Modifier.width(52.dp))
+        Text("${slider.value}${slider.unit}", fontSize = 13.sp, color = Palette.Muted, textAlign = TextAlign.End, maxLines = 1, modifier = Modifier.width(44.dp))
     }
 }
 
