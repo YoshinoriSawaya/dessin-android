@@ -1,6 +1,8 @@
 package com.yswy.dessin.core.math
 
 import kotlin.math.abs
+import kotlin.math.asin
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -37,8 +39,38 @@ data class Quat(val x: Double, val y: Double, val z: Double, val w: Double) {
         )
     }
 
+    /**
+     * オイラー角(順序 YXZ、ラジアン)に分解する(three.js の Euler.setFromRotationMatrix)。
+     * x が ±90度のときは z を 0 にして y で表す。
+     */
+    fun toEulerYXZ(): Vec3 {
+        val m11 = 1 - 2 * (y * y + z * z)
+        val m13 = 2 * (x * z + w * y)
+        val m21 = 2 * (x * y + w * z)
+        val m22 = 1 - 2 * (x * x + z * z)
+        val m23 = 2 * (y * z - w * x)
+        val m31 = 2 * (x * z - w * y)
+        val m33 = 1 - 2 * (x * x + y * y)
+        val ex = asin(-m23.coerceIn(-1.0, 1.0))
+        return if (abs(m23) < 0.9999999) Vec3(ex, atan2(m13, m33), atan2(m21, m22))
+        else Vec3(ex, atan2(-m31, m11), 0.0)
+    }
+
     companion object {
         val IDENTITY = Quat(0.0, 0.0, 0.0, 1.0)
+
+        /** オイラー角(順序 YXZ、ラジアン)から作る。回転は Ry·Rx·Rz(three.js の setFromEuler) */
+        fun fromEulerYXZ(e: Vec3): Quat {
+            val c1 = cos(e.x / 2); val s1 = sin(e.x / 2)
+            val c2 = cos(e.y / 2); val s2 = sin(e.y / 2)
+            val c3 = cos(e.z / 2); val s3 = sin(e.z / 2)
+            return Quat(
+                s1 * c2 * c3 + c1 * s2 * s3,
+                c1 * s2 * c3 - s1 * c2 * s3,
+                c1 * c2 * s3 - s1 * s2 * c3,
+                c1 * c2 * c3 + s1 * s2 * s3,
+            )
+        }
 
         /** 軸まわりに angle(ラジアン)回す。軸は正規化してから使う */
         fun fromAxisAngle(axis: Vec3, angle: Double): Quat {
