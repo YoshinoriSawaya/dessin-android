@@ -14,7 +14,7 @@ E01 のロジックを使い、Web版と同じ操作を Android で行えるよ�
 - [x] [E02-06 画面の状態と操作パネル](../tasks/E02-06-screen-state.md)
 - [x] [E02-07 タッチ操作](../tasks/E02-07-touch.md)
 - [x] [E02-08 スライダー](../tasks/E02-08-sliders.md)
-- [ ] [E02-09 回転オーブ](../tasks/E02-09-orb.md)
+- [x] [E02-09 回転オーブ](../tasks/E02-09-orb.md)
 - [ ] [E02-10 表示の切替と視点のボタン](../tasks/E02-10-view-toggles.md)
 - [ ] [E02-11 影](../tasks/E02-11-shadow.md)
 - [ ] [E02-12 実機での通し確認](../tasks/E02-12-device-check.md)
