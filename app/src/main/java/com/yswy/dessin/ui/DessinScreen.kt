@@ -22,6 +22,7 @@ import com.yswy.dessin.core.camera.ViewPreset
 import com.yswy.dessin.core.editor.EditorState
 import com.yswy.dessin.core.editor.EditorStateCodec
 import com.yswy.dessin.core.editor.TouchGesture
+import com.yswy.dessin.core.editor.applySlider
 import com.yswy.dessin.core.mesh.fitBounds
 import com.yswy.dessin.gl.DollRenderer
 import com.yswy.dessin.gl.DollSurfaceView
@@ -50,6 +51,7 @@ fun DessinScreen(start: EditorState) {
         onReset = { state = state.resetSelected() },
         onRemove = { state = state.removeSelected() },
         onTogglePanel = { state = state.togglePanel() },
+        onSlider = { kind, value -> state = state.applySlider(kind, value) },
     )
 
     // 指の操作の途中の状態。画面にひとつ

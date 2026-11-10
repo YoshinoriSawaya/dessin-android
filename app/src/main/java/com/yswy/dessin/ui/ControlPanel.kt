@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -33,12 +35,17 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yswy.dessin.core.editor.ChipLook
 import com.yswy.dessin.core.editor.EditorState
 import com.yswy.dessin.core.editor.PartChip
+import com.yswy.dessin.core.editor.Slider
+import com.yswy.dessin.core.editor.SliderKind
+import com.yswy.dessin.core.editor.sliders
+import kotlin.math.roundToInt
 
 /** 色は Web版の CSS の値 */
 object Palette {
@@ -56,11 +63,12 @@ class PanelActions(
     val onReset: () -> Unit,
     val onRemove: () -> Unit,
     val onTogglePanel: () -> Unit,
+    val onSlider: (SliderKind, Int) -> Unit,
 )
 
 /**
- * 下の操作パネル(Web版の #panel)。選択中の部位、向きを戻す・外す・折りたたみ、説明、部位チップ。
- * tools には「表示」の段に並べるボタンを渡す(E02-10 で整える)。スライダーとオーブは E02-08・E02-09。
+ * 下の操作パネル(Web版の #panel)。選択中の部位、向きを戻す・外す・折りたたみ、説明、スライダー、部位チップ。
+ * tools には「表示」の段に並べるボタンを渡す(E02-10 で整える)。オーブは E02-09。
  */
 @Composable
 fun ControlPanel(state: EditorState, actions: PanelActions, modifier: Modifier = Modifier, tools: @Composable () -> Unit) {
@@ -76,6 +84,9 @@ fun ControlPanel(state: EditorState, actions: PanelActions, modifier: Modifier =
         }
         if (state.panelOpen) {
             Text(state.selectionInfo, fontSize = 12.sp, color = Palette.Muted, lineHeight = 18.sp, modifier = Modifier.padding(top = 4.dp))
+            Column(Modifier.padding(top = 2.dp)) {
+                state.sliders.forEach { SliderRow(it, actions.onSlider) }
+            }
             Group("部位") {
                 state.partChips.forEachIndexed { i, group ->
                     if (i > 0) Separator()
@@ -84,6 +95,38 @@ fun ControlPanel(state: EditorState, actions: PanelActions, modifier: Modifier =
             }
             Group("表示") { tools() }
         }
+    }
+}
+
+/** スライダー1行(Web版の .row: ラベル・スライダー・値) */
+// 溝を細くする Slider の track 指定は Material3 で実験的な API(変わったら標準の見た目に戻せばよい)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SliderRow(slider: Slider, onChange: (SliderKind, Int) -> Unit) {
+    val colors = SliderDefaults.colors(thumbColor = Palette.Accent, activeTrackColor = Palette.Accent, inactiveTrackColor = Palette.Line)
+    Row(Modifier.fillMaxWidth().heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(slider.label, fontSize = 13.sp, color = Palette.Ink, maxLines = 1, modifier = Modifier.width(104.dp))
+        androidx.compose.material3.Slider(
+            value = slider.value.toFloat(),
+            onValueChange = { v -> val i = v.roundToInt(); if (i != slider.value) onChange(slider.kind, i) },
+            // 範囲が0のスライダーは使えないが、Slider は幅0の範囲を受け付けないので1だけ広げて表示する
+            valueRange = slider.min.toFloat()..maxOf(slider.max, slider.min + 1).toFloat(),
+            enabled = slider.enabled,
+            colors = colors,
+            modifier = Modifier.weight(1f).height(28.dp).semantics { contentDescription = slider.label },
+            // Web版の細い range に合わせて、溝を細くし、つまみとの隙間と終点の印をなくす
+            track = { st ->
+                SliderDefaults.Track(
+                    sliderState = st,
+                    modifier = Modifier.height(4.dp),
+                    enabled = slider.enabled,
+                    colors = colors,
+                    drawStopIndicator = null,
+                    thumbTrackGapSize = 0.dp,
+                )
+            },
+        )
+        Text("${slider.value}${slider.unit}", fontSize = 13.sp, color = Palette.Muted, textAlign = TextAlign.End, maxLines = 1, modifier = Modifier.width(52.dp))
     }
 }
 
