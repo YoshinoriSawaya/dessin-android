@@ -40,9 +40,12 @@ data class Skeleton(
                 JointTransform(root.position, root.rotation, root.scale)
             } else {
                 val parent = out.getValue(spec.parent!!)
+                val local = localRotation(spec, state(spec.id))
+                // 回転の中心が関節からずれている部位(ひざ)は、中心のまわりに回した分だけ関節が動く
+                val joint = attachOf(spec, body) + spec.pivot + local.rotate(-spec.pivot)
                 JointTransform(
-                    parent.toWorld(attachOf(spec, body)),
-                    parent.rotation * localRotation(spec, state(spec.id)),
+                    parent.toWorld(joint),
+                    parent.rotation * local,
                     parent.scale * jointScale(spec, body),
                 )
             }
@@ -100,7 +103,8 @@ data class Skeleton(
     /** 玉のワールド位置 */
     fun dotWorld(id: String): Vec3 {
         val spec = PartSpecs[id]
-        return parentOf(id).toWorld(attachOf(spec, body) + dotPosition(spec, state(id)))
+        val parent = parentOf(id)
+        return guideCenter(id) + parent.rotation.rotate(dotPosition(spec, state(id)) * parent.scale)
     }
 
     /** ワールドの方向へ向ける。可動域に収める(Web版の aimPart) */

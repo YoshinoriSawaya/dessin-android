@@ -104,7 +104,8 @@ object PartVisuals {
             "upperArm" -> { mk(cyl(0.032, 0.24), Vec3(0.0, -0.125, 0.0), edges = true, lines = cylLines(0.032, 0.24, ring = true)); marker(0.045) }
             "forearm" -> { mk(cyl(0.028, 0.22), Vec3(0.0, -0.11, 0.0), edges = true, lines = cylLines(0.028, 0.22, ring = true)); marker(0.036) }
             "hand" -> {
-                mk(Primitives.box(0.062, 0.09, 0.024), Vec3(0.0, -0.05, 0.0), edges = true,
+                // 平たい面が体側を向くように縦軸まわりに 90° 回す(E06-01)
+                mk(Primitives.box(0.062, 0.09, 0.024), Vec3(0.0, -0.05, 0.0), Quat.fromAxisAngle(Vec3.Y, PI / 2), edges = true,
                     lines = listOf(tube(listOf(Vec3(0.0, -0.045, 0.012 + LE), Vec3(0.0, 0.045, 0.012 + LE)), closed = false)))
                 marker(0.026)
             }
