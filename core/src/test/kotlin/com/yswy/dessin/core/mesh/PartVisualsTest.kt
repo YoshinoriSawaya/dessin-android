@@ -16,11 +16,11 @@ class PartVisualsTest {
     @Test
     fun 輪郭はWeb版で指定したメッシュだけにある() {
         val withEdges = PartSpecs.all.flatMap { s -> PartVisuals.meshes(s.id).mapIndexedNotNull { i, m -> if (m.edges != null) "${s.id}:$i" else null } }.toSet()
-        // 関節の玉・頭の球・付け根には輪郭が無い
+        // 関節の玉・頭の球には輪郭が無い。付け根は E04-02 で見えるようにしたので輪郭がある
         assertTrue("head:1" in withEdges)
         assertTrue("head:0" !in withEdges)
         assertTrue("neck:1" !in withEdges)
-        assertTrue("hipL:0" !in withEdges)
+        assertTrue("hipL:0" in withEdges)
         assertTrue("rib:0" in withEdges)
     }
 

@@ -155,9 +155,10 @@ class HipPickTest {
 
     @Test
     fun 付け根は骨盤の側面から見えていて直接当たる() {
-        // 骨盤の外面より外にある付け根の円柱を、真横から
-        val j = all.guideCenter("thighL")
+        // 骨盤の外面より外にある付け根の円柱を、真横から。腕を置くと垂らした前腕が手前に来るので、脚の側だけ置く
+        val s = Skeleton.initial().place("pelvis").place("hipL").place("thighL")
+        val j = s.guideCenter("thighL")
         val side = Ray(Vec3(j.x + 3.0, j.y + 0.04, j.z), Vec3(-1.0, 0.0, 0.0))
-        assertEquals("hipL", pickPart(all, "rib", DisplayOptions(), side))
+        assertEquals("hipL", pickPart(s, "rib", DisplayOptions(), side))
     }
 }
