@@ -9,7 +9,7 @@ E01 のロジックを使い、Web版と同じ操作を Android で行えるよ�
 - [x] [E02-01 カメラと画面からのレイ](../tasks/E02-01-camera.md)
 - [x] [E02-02 形状の生成](../tasks/E02-02-meshes.md)
 - [x] [E02-03 GL描画の土台](../tasks/E02-03-gl-base.md)
-- [ ] [E02-04 人形の描画](../tasks/E02-04-render-doll.md)
+- [x] [E02-04 人形の描画](../tasks/E02-04-render-doll.md)
 - [ ] [E02-05 ピッキング](../tasks/E02-05-picking.md)
 - [ ] [E02-06 画面の状態と操作パネル](../tasks/E02-06-screen-state.md)
 - [ ] [E02-07 タッチ操作](../tasks/E02-07-touch.md)
