@@ -11,11 +11,18 @@
 ## 依存
 E01-04
 
+## 設計の決定
+- Web版の dragPart のうち、レイと球の交点から方向を求める部分を `dragDirection(ray, center, radius, currentDot)` として切り出した。ワールドの方向を返し、決まらなければ null
+- 方向を親の空間に直して `aimPart` に渡す部分は E01-08 でつなぐ。そのとき radius には「可動域の半径 × 親のワールドでの拡大率」を渡す(Web版の `p.rVis*ws`)
+
 ## 検証結果
-未着手
+- テスト先行: `DragTest` を書き、コンパイルエラーで失敗することを確認してから実装した
+- `./gradlew :core:test` → `DragTest` 6件を含め、全68件が成功
+- `./gradlew lint test assembleDebug` → BUILD SUCCESSFUL(lint は 0 errors、既存の警告5件のみ)
 
 ## 未検証のまま残したこと
-未着手
+- 球がレイの始点の後ろにあって交点が2つとも後ろ側のときも、Web版と同じく交点を使う(テストはしていない。カメラが球の中に入らない限り起きない)
+- 実際の指の操作感は E02 で確かめる
 
 ## ステータス
-未着手
+完了
