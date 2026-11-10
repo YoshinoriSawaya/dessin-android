@@ -23,15 +23,19 @@ object PartSpecs {
             val s = if (side == Side.LEFT) "L" else "R"
             val n = if (side == Side.LEFT) "左" else "右"
             fun sided(id: String, label: String, parent: String, attach: Vec3, restDir: Vec3, length: Double, guideRadius: Double,
-                      cone: Cone?, roll: RollRange, hinge: Hinge? = null, ref: Vec3 = Vec3.Z, adjust: Adjust? = null) =
-                part(id + s, n + label, parent, side, attach, restDir, length, guideRadius, cone, roll, hinge, ref, adjust)
+                      cone: Cone?, roll: RollRange, hinge: Hinge? = null, ref: Vec3 = Vec3.Z, adjust: Adjust? = null, pivot: Vec3 = Vec3.ZERO) =
+                part(id + s, n + label, parent, side, attach, restDir, length, guideRadius, cone, roll, hinge, ref, adjust, pivot)
             add(sided("clav", "肩", "rib", v(0.025, 0.12, 0), v(1, 0, 0), 0.12, 0.2, cone(20, 20, 35, 15), roll(0, 0), adjust = Adjust.SHOULDER_WIDTH))
             add(sided("upperArm", "上腕", "clav$s", v(0.12, 0, 0), v(0, -1, 0), 0.25, 0.25, cone(180, 60, 180, 30), roll(-90, 90)))
-            add(sided("forearm", "前腕", "upperArm$s", v(0, -0.25, 0), v(0, -1, 0), 0.23, 0.23, null, roll(-80, 80), hinge = Hinge(PI, -15 * D2R, 150 * D2R)))
-            add(sided("hand", "手", "forearm$s", v(0, -0.23, 0), v(0, -1, 0), 0.10, 0.2, cone(60, 60, 25, 25), roll(0, 0)))
+            // 前腕のひねり(回内・回外)は ±90°(E06-01)
+            add(sided("forearm", "前腕", "upperArm$s", v(0, -0.25, 0), v(0, -1, 0), 0.23, 0.23, null, roll(-90, 90), hinge = Hinge(PI, -15 * D2R, 150 * D2R)))
+            // 手は平たい面が体側を向く。手首は手の平・甲の側(±x)に 60°、親指・小指の側に 25°。ひねりは前腕で行う(E06-01)
+            add(sided("hand", "手", "forearm$s", v(0, -0.23, 0), v(0, -1, 0), 0.10, 0.2, cone(25, 25, 60, 60), roll(0, 0)))
             add(sided("hip", "付け根", "pelvis", v(0.025, -0.11, 0.035), v(1, 0, 0), 0.05, 0.18, cone(25, 25, 25, 20), roll(0, 0)))
-            add(sided("thigh", "もも", "hip$s", v(0.05, 0, 0), v(0, -1, 0), 0.40, 0.4, cone(120, 30, 70, 30), roll(-45, 45)))
-            add(sided("shin", "すね", "thigh$s", v(0, -0.40, 0), v(0, -1, 0), 0.38, 0.38, null, roll(0, 0), hinge = Hinge(0.0, 0.0, 150 * D2R)))
+            // もものひねりは ±90°(E06-01)
+            add(sided("thigh", "もも", "hip$s", v(0.05, 0, 0), v(0, -1, 0), 0.40, 0.4, cone(120, 30, 70, 30), roll(-90, 90)))
+            // ひざは大腿骨の丸み(顆)の中心で回り、曲げるとすねの付け根が後ろ上へ転がるように移る(E06-02)
+            add(sided("shin", "すね", "thigh$s", v(0, -0.40, 0), v(0, -1, 0), 0.38, 0.38, null, roll(0, 0), hinge = Hinge(0.0, 0.0, 150 * D2R), pivot = v(0, 0.03, 0)))
             add(sided("foot", "足", "shin$s", v(0, -0.38, 0), v(0, 0, 1), 0.16, 0.2, cone(20, 45, 20, 20), roll(0, 0), ref = Vec3.Y))
         }
     }
@@ -46,13 +50,13 @@ object PartSpecs {
     private fun part(
         id: String, label: String, parent: String, side: Side?, attach: Vec3, restDir: Vec3,
         length: Double, guideRadius: Double, cone: Cone?, roll: RollRange,
-        hinge: Hinge? = null, ref: Vec3 = Vec3.Z, adjust: Adjust? = null,
+        hinge: Hinge? = null, ref: Vec3 = Vec3.Z, adjust: Adjust? = null, pivot: Vec3 = Vec3.ZERO,
     ): PartSpec {
         val right = side == Side.RIGHT
         fun mx(p: Vec3) = if (right) Vec3(-p.x, p.y, p.z) else p
         return PartSpec(
             id, label, parent, side, mx(attach), mx(restDir), ref, length, guideRadius,
-            if (right) cone?.mirrored() else cone, hinge, if (right) roll.mirrored() else roll, adjust,
+            if (right) cone?.mirrored() else cone, hinge, if (right) roll.mirrored() else roll, adjust, mx(pivot),
         )
     }
 

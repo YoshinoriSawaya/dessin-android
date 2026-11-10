@@ -118,7 +118,7 @@ class PartSpecsTest {
     fun ロールの鏡像は符号を反転して上下を入れ替える() {
         // Web版の定義はすべて対称だが、非対称のときの扱いを確かめる
         assertRoll(RollRange(-0.5, 0.2), RollRange(-0.2, 0.5).mirrored())
-        assertRoll(RollRange(-80 * D2R, 80 * D2R), PartSpecs["forearmR"].roll)
+        assertRoll(RollRange(-90 * D2R, 90 * D2R), PartSpecs["forearmR"].roll)
     }
 
     @Test

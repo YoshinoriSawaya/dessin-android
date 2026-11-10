@@ -70,10 +70,10 @@ class OrbTest {
 
     @Test
     fun 右側でもロールを範囲に収める() {
-        // 前腕は左右とも ±80度
+        // 前腕は左右とも ±90度(E06-01)
         val p = PartSpecs["forearmR"]
         val s = PartState.rest(p)
-        assertState(PartState(0.0, PI, 80 * D2R), orbRotate(p, s, Quat.fromAxisAngle(axisOf(p, s), 2.0)))
+        assertState(PartState(0.0, PI, 90 * D2R), orbRotate(p, s, Quat.fromAxisAngle(axisOf(p, s), 2.0)))
     }
 
     @Test
