@@ -25,5 +25,5 @@
 - Git運用・完了の定義・破壊的操作の確認は dev-fundamentals に従う
 
 ## 環境の制約
-- Claude側の環境にはAndroid SDKがなく、ビルド・実機確認は人間が Android Studio で行う
-- Claudeはコードとテストを書き、ビルドと動作確認の結果は人間が検証結果に記入する
+- Claude側でもビルド・lint・JVMテストを実行できる(手順は `docs/development.md`)
+- 実機・エミュレータでの動作確認は人間が行い、結果を検証結果に記入する
