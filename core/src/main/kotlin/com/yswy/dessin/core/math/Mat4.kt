@@ -51,10 +51,13 @@ class Mat4(val elements: DoubleArray) {
         val IDENTITY = Mat4(doubleArrayOf(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0))
 
         /** 位置・回転・等方の拡大から作る(three.js の Matrix4.compose) */
-        fun compose(position: Vec3, rotation: Quat, scale: Double): Mat4 {
-            val ax = rotation.rotate(Vec3.X) * scale
-            val ay = rotation.rotate(Vec3.Y) * scale
-            val az = rotation.rotate(Vec3.Z) * scale
+        fun compose(position: Vec3, rotation: Quat, scale: Double): Mat4 = compose(position, rotation, Vec3(scale, scale, scale))
+
+        /** 位置・回転・軸ごとの拡大から作る。拡大を先に、回転、平行移動の順に掛かる */
+        fun compose(position: Vec3, rotation: Quat, scale: Vec3): Mat4 {
+            val ax = rotation.rotate(Vec3.X) * scale.x
+            val ay = rotation.rotate(Vec3.Y) * scale.y
+            val az = rotation.rotate(Vec3.Z) * scale.z
             return Mat4(
                 doubleArrayOf(
                     ax.x, ax.y, ax.z, 0.0,

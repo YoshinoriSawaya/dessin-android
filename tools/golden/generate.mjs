@@ -288,3 +288,45 @@ const camLines = [
 }
 writeFileSync(camOutPath, camLines.join('\n') + '\n');
 console.log(`書き出し: ${camOutPath}(${camLines.length} 行)`);
+
+/* ---------- 形と可動域の表示(E02-02) ---------- */
+// 部位のメッシュ(子の線・輪郭は除く)の頂点・法線・インデックスと置き方、可動域の面と輪郭
+
+const meshOutPath = resolve(root, 'core/src/test/resources/golden/mesh-golden.txt');
+const meshLines = [
+  '# 自動生成。手で編集しない。tools/golden で `npm run generate` を実行して作り直す',
+  '# 元: docs/web-reference.html の build・buildGuide・setShoulderWidth・updateHips(three.js r128)',
+];
+{
+  // 頂点などは float32 なので有効数字9桁で足りる(読み戻すと同じ float32 になる)
+  const f32 = (v) => fmt(Number(v.toPrecision(9)));
+  const arr = (name, a) => meshLines.push([name, a.length, ...Array.from(a, f32)].join(' '));
+  const placement = (tag, id, i, m) => meshLines.push([tag, id, i, m.position.x, m.position.y, m.position.z,
+    m.quaternion.x, m.quaternion.y, m.quaternion.z, m.quaternion.w, m.scale.x, m.scale.y, m.scale.z].map(fmt).join(' '));
+  scenario('形の書き出し', () => {});
+  for (const id of ids) {
+    web.parts[id].meshes.forEach((m, i) => {
+      placement('mesh', id, i, m);
+      meshLines.push(`kind ${m.userData.marker ? 'marker' : (m.userData.mask ? 'mask' : 'body')}`);
+      arr('positions', m.geometry.attributes.position.array);
+      arr('normals', m.geometry.attributes.normal.array);
+      arr('indices', m.geometry.index.array);
+    });
+  }
+  // 体型を変えたときのメッシュの置き方
+  const body = [1.3, 1.2, 0.03];
+  web.setShoulderWidth(body[0]); web.setPelvisWidth(body[1]); web.setHipInset(body[2]);
+  meshLines.push(['body', ...body].map(fmt).join(' '));
+  for (const id of ids) web.parts[id].meshes.forEach((m, i) => placement('scaled', id, i, m));
+  web.setShoulderWidth(1); web.setPelvisWidth(1); web.setHipInset(0.0407);
+  for (const id of ids) {
+    const p = web.parts[id];
+    if (p.root) continue;
+    meshLines.push(`guide ${id}`);
+    arr('area', p.area.geometry.attributes.position.array);
+    arr('areaIndices', p.area.geometry.index.array);
+    arr('outline', p.guide.children[1].geometry.attributes.position.array);
+  }
+}
+writeFileSync(meshOutPath, meshLines.join('\n') + '\n');
+console.log(`書き出し: ${meshOutPath}(${meshLines.length} 行)`);
