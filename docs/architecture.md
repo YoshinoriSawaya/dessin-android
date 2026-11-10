@@ -9,6 +9,11 @@
 
 3D描画の代替案(Filament / SceneView、libGDX、Godot C#)は検討済み。Android標準で枯れている点を理由に、現時点では OpenGL ES を仮採用。
 
+## 対象環境
+- minSdk 26(Android 8.0)、OpenGL ES 3.0
+- 画面は縦向きに固定
+- 部位同士の衝突判定は行わない(めり込みを許す)
+
 ## ロジック層の仕様(Web版から移植)
 - 部位は親の関節グループの子。各部位に休止方向 a0、基準フレーム Qb、状態 {phi, psi, roll} を持つ
 - 基準フレームでの方向: d' = (sinφ·sinψ, −cosφ, −sinφ·cosψ)

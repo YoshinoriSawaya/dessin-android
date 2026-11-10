@@ -4,7 +4,7 @@
 
 ## 現状
 - Web版(three.js、単一HTML)で操作感を確認済み
-- Kotlin版は未着手。v1の範囲は `docs/issues/` で決める
+- Kotlin版は未着手。v1の範囲は `docs/issues/README.md` に記載
 
 ## 概要
 - 肋骨ブロックを置き、肩・首・骨盤…と親から子へ一つずつ配置する
