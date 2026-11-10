@@ -3,6 +3,7 @@ package com.yswy.dessin.core.editor
 import com.yswy.dessin.core.camera.OrbitCamera
 import com.yswy.dessin.core.camera.ViewPreset
 import com.yswy.dessin.core.mesh.fitBounds
+import com.yswy.dessin.core.skeleton.Skeleton
 
 /** 表示の切替(Web版の「ガイド」「正中線」「関節の玉」「格子」のチップ) */
 enum class Display { GUIDES, LINES, MARKERS, GRID }
@@ -32,3 +33,9 @@ fun EditorState.fitView(aspect: Double): EditorState {
     val (lo, hi) = fitBounds(skeleton) ?: return withCamera(cam)
     return withCamera(cam.fit(lo, hi, aspect))
 }
+
+/**
+ * 保存したポーズを読み込む。選択中の部位が置かれていなければ肋骨を選び、全体を表示する(視点の向きは保つ)。
+ */
+fun EditorState.loadPose(pose: Skeleton, aspect: Double): EditorState =
+    copy(skeleton = pose, selected = if (pose.isPlaced(selected)) selected else "rib").fitView(aspect)

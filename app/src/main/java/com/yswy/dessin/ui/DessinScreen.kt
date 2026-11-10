@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,7 @@ import com.yswy.dessin.core.editor.applyOrb
 import com.yswy.dessin.core.editor.applySlider
 import com.yswy.dessin.core.editor.fitView
 import com.yswy.dessin.core.editor.isOn
+import com.yswy.dessin.core.editor.loadPose
 import com.yswy.dessin.core.editor.preset
 import com.yswy.dessin.core.editor.toggle
 import com.yswy.dessin.gl.DollRenderer
@@ -73,6 +75,10 @@ fun DessinScreen(start: EditorState) {
     val tallEnough = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() } > 620.dp
     // 全体を表示に使う 3D の画面の縦横比
     var aspect by remember { mutableDoubleStateOf(1.0) }
+    // 名前を付けて保存したポーズ
+    val context = LocalContext.current
+    val poses = remember { PoseShelf(context) }
+    var dialog by remember { mutableStateOf<PoseDialog?>(null) }
 
     val actions = PanelActions(
         onSelect = { state = state.select(it) },
@@ -122,11 +128,33 @@ fun DessinScreen(start: EditorState) {
             }
             if (state.options.guides) Legend(Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = 8.dp))
         }
-        ControlPanel(state, actions, Modifier.fillMaxWidth().background(Palette.Panel).navigationBarsPadding()) {
-            ToolChip("全体を表示") { state = state.fitView(aspect) }
-            ViewPreset.entries.forEach { preset -> ToolChip(preset.label()) { state = state.preset(preset) } }
-            Display.entries.forEach { d -> ToolChip(d.label(), pressed = state.isOn(d)) { state = state.toggle(d) } }
-        }
+        ControlPanel(
+            state, actions, Modifier.fillMaxWidth().background(Palette.Panel).navigationBarsPadding(),
+            tools = {
+                ToolChip("全体を表示") { state = state.fitView(aspect) }
+                ViewPreset.entries.forEach { preset -> ToolChip(preset.label()) { state = state.preset(preset) } }
+                Display.entries.forEach { d -> ToolChip(d.label(), pressed = state.isOn(d)) { state = state.toggle(d) } }
+            },
+            saveTools = {
+                ToolChip("名前を付けて保存") { dialog = PoseDialog.Save(poses.suggestName()) }
+                ToolChip("保存したポーズ") { poses.list()?.let { dialog = PoseDialog.List(it) } }
+            },
+        )
+    }
+
+    when (val d = dialog) {
+        is PoseDialog.Save -> SavePoseDialog(
+            suggestedName = d.suggestedName,
+            onSave = { name -> if (poses.save(name, state.skeleton)) dialog = null },
+            onDismiss = { dialog = null },
+        )
+        is PoseDialog.List -> PoseListDialog(
+            items = d.items,
+            onLoad = { id -> poses.load(id)?.let { pose -> state = state.loadPose(pose, aspect); dialog = null } },
+            onDelete = { id -> poses.delete(id); dialog = poses.list()?.let { PoseDialog.List(it) } },
+            onDismiss = { dialog = null },
+        )
+        null -> Unit
     }
 }
 
