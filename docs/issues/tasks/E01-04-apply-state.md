@@ -12,11 +12,18 @@
 ## 依存
 E01-03
 
+## 設計の決定
+- 状態は不変の `PartState(phi, psi, roll)`。休止状態は `PartState.rest(spec)`(ヒンジは psi を曲げる向きにする。Web版の resetPart)
+- Web版の applyState は three.js のオブジェクトを書き換えるが、ここでは回転を返す純粋関数 `localRotation` と、玉の位置を返す `dotPosition` に分けた
+- 可動域へのクランプはしない(Web版の applyState と同じく、入力側の E01-05・E01-07 で行う)
+
 ## 検証結果
-未着手
+- テスト先行: `PoseTest` を書き、コンパイルエラーで失敗することを確認してから実装した
+- `./gradlew :core:test` → `PoseTest` 10件を含め、全53件が成功
+- `./gradlew lint test assembleDebug` → BUILD SUCCESSFUL(lint は 0 errors、既存の警告5件のみ)
 
 ## 未検証のまま残したこと
-未着手
+- Web版の出力との数値の照合は E01-10 で行う
 
 ## ステータス
-未着手
+完了
