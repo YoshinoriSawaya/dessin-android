@@ -15,10 +15,12 @@
 E05
 
 ## 検証結果
-未着手
+- テスト先行: `ThighHandTest` を書き、失敗することを確認してから `PartSpecs`・`PartVisuals` を直した。前腕の値(±80°)を例に使っていたテスト2件(OrbTest・PartSpecsTest)は新しい値に書き換えた
+- `./gradlew lint test assembleDebug` → BUILD SUCCESSFUL(テスト276件、うち照合3件は停止、失敗0件)
+- 実機(Pixel 10a、Android 17)に入れて利用者が確認し、マージの指示を受けた
 
 ## 未検証のまま残したこと
-未着手
+なし
 
 ## ステータス
-未着手
+完了
