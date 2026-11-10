@@ -25,4 +25,4 @@
 頭の大きさ、肩幅、骨盤の横幅、股関節の付け根の内寄り。
 
 ## 参照実装
-Web版 `index.html`(three.js r128)。寸法の数値や可動域の制限値はそこを正とする。
+Web版 `docs/web-reference.html`(three.js r128、単一HTML)。寸法の数値や可動域の制限値はそこを正とする。
