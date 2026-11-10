@@ -19,8 +19,14 @@ class ThighHandTest {
     }
 
     @Test
-    fun 手のひねりは90度まで() {
-        listOf("handL", "handR").forEach { assertEquals(RollRange(-90 * D2R, 90 * D2R), PartSpecs[it].roll) }
+    fun ひねるのは前腕で90度まで_手はひねらない() {
+        // 手首から先を回すのは前腕の回内・回外。手自体はひねらない(利用者の指摘)
+        listOf("forearmL", "forearmR").forEach { assertEquals(RollRange(-90 * D2R, 90 * D2R), PartSpecs[it].roll) }
+        // 右側は鏡像で -0.0 になるので数値の差で比べる
+        listOf("handL", "handR").forEach {
+            assertEquals(0.0, PartSpecs[it].roll.min, EPS)
+            assertEquals(0.0, PartSpecs[it].roll.max, EPS)
+        }
     }
 
     @Test
