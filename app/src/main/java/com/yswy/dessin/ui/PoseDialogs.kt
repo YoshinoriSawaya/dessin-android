@@ -46,13 +46,16 @@ fun SavePoseDialog(suggestedName: String, onSave: (String) -> Unit, onDismiss: (
             )
         },
         confirmButton = { TextButton(onClick = { onSave(name) }) { Text("保存") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("キャンセル") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("キャンセル", color = Palette.Ink) } },
     )
 }
 
 private val DateFormat = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
 
-/** 保存したポーズの一覧。読み込み・削除(削除は確認してから) */
+/**
+ * 保存したポーズの一覧。読み込み・削除(削除は確認してから)。
+ * ボタンの色: 主な操作(読み込む・確認の削除)はアクセント、閉じる・キャンセルは墨、一覧の削除は淡い色
+ */
 @Composable
 fun PoseListDialog(items: List<SavedPoseSummary>, onLoad: (String) -> Unit, onDelete: (String) -> Unit, onDismiss: () -> Unit) {
     var deleting by remember { mutableStateOf<SavedPoseSummary?>(null) }
@@ -75,7 +78,7 @@ fun PoseListDialog(items: List<SavedPoseSummary>, onLoad: (String) -> Unit, onDe
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
                                 TextButton(onClick = { onLoad(item.id) }) { Text("読み込む") }
-                                TextButton(onClick = { deleting = item }) { Text("削除", color = Palette.Accent) }
+                                TextButton(onClick = { deleting = item }) { Text("削除", color = Palette.Muted) }
                             }
                         }
                         HorizontalDivider(color = Palette.Line)
@@ -83,7 +86,7 @@ fun PoseListDialog(items: List<SavedPoseSummary>, onLoad: (String) -> Unit, onDe
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("閉じる") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("閉じる", color = Palette.Ink) } },
     )
     deleting?.let { item ->
         AlertDialog(
@@ -91,7 +94,7 @@ fun PoseListDialog(items: List<SavedPoseSummary>, onLoad: (String) -> Unit, onDe
             title = { Text("削除しますか?") },
             text = { Text("「${item.name}」を削除します。元に戻せません。") },
             confirmButton = { TextButton(onClick = { onDelete(item.id); deleting = null }) { Text("削除", color = Palette.Accent) } },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text("キャンセル") } },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text("キャンセル", color = Palette.Ink) } },
         )
     }
 }

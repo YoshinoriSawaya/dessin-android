@@ -6,7 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.MaterialTheme
+import com.yswy.dessin.ui.DessinTheme
 import com.yswy.dessin.ui.DessinScreen
 
 class MainActivity : ComponentActivity() {
@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
         val start = debugStartState(this, intent)
         setContent {
-            MaterialTheme {
+            DessinTheme {
                 DessinScreen(start)
             }
         }
