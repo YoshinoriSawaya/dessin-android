@@ -8,7 +8,8 @@ import com.yswy.dessin.core.skeleton.BodyParams
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.Side
 import com.yswy.dessin.core.skeleton.Skeleton
-import com.yswy.dessin.core.skeleton.hipLength
+import com.yswy.dessin.core.skeleton.HIP_ROOT_X
+import com.yswy.dessin.core.skeleton.PELVIS_OUTER
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max
@@ -59,8 +60,9 @@ object PartVisuals {
                 spec.adjust == Adjust.PELVIS_WIDTH ->
                     return MeshPlacement(e.position, e.rotation, Vec3(body.pelvisWidth, 1.0, 1.0))
                 id.startsWith("hip") -> {
-                    val k = hipLength(body) / 0.05
-                    return MeshPlacement(Vec3(sg * 0.025 * k, e.position.y, e.position.z), e.rotation, Vec3(1.0, k, 1.0))
+                    // 付け根は骨盤の外面より 0.02 外まで見せる(E04-02。骨盤に埋まって選べなかったため)
+                    val len = PELVIS_OUTER * body.pelvisWidth + 0.02 - HIP_ROOT_X
+                    return MeshPlacement(Vec3(sg * len / 2, e.position.y, e.position.z), e.rotation, Vec3(1.0, len / 0.05, 1.0))
                 }
             }
         }
@@ -99,7 +101,7 @@ object PartVisuals {
                     lines = listOf(tube(listOf(Vec3(0.0, -0.045, 0.012 + LE), Vec3(0.0, 0.045, 0.012 + LE)), closed = false)))
                 marker(0.026)
             }
-            "hip" -> mk(cyl(0.03, 0.05), Vec3(sg * 0.025, 0.0, 0.0), QZ90, edges = false)
+            "hip" -> mk(Primitives.cylinder(0.045, 0.045, 0.05, 20), Vec3(sg * 0.025, 0.0, 0.0), QZ90, edges = true)
             "thigh" -> { mk(cyl(0.052, 0.39), Vec3(0.0, -0.2, 0.0), edges = true, lines = cylLines(0.052, 0.39, ring = true)); marker(0.055) }
             "shin" -> { mk(cyl(0.038, 0.37), Vec3(0.0, -0.19, 0.0), edges = true, lines = cylLines(0.038, 0.37, ring = true)); marker(0.044) }
             "foot" -> {

@@ -28,11 +28,11 @@ data class BodyParams(
 }
 
 /** 骨盤の外縁の x(横幅が1倍のとき) */
-private const val PELVIS_OUTER = 0.1157
+internal const val PELVIS_OUTER = 0.1157
 /** 股関節が骨盤の中心に寄れる限界の x */
 private const val HIP_MIN_X = 0.03
 /** 付け根の取り付け位置の x(PartSpecs の hipL と同じ) */
-private const val HIP_ROOT_X = 0.025
+internal const val HIP_ROOT_X = 0.025
 
 /**
  * 付け根(hip)の長さ。股関節は骨盤の外縁から hipInset だけ内側に置く(Web版の updateHips)。
