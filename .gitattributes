@@ -1,0 +1,14 @@
+# 改行はLFに統一する(core.autocrlf の設定に関係なく)
+* text=auto eol=lf
+
+# Windows用スクリプトはCRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# バイナリ
+*.jar binary
+*.png binary
+*.jpg binary
+*.webp binary
+*.ttf binary
+*.otf binary
