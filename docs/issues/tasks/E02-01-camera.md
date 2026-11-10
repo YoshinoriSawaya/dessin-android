@@ -17,11 +17,22 @@
 ## 依存
 E01-01
 
+## 設計の決定
+- `OrbitCamera`(注視点・yaw・pitch・距離)を不変の data class にした。視点の位置・向き、回転・ズーム・ピンチ・プリセット・全体を表示、画面からのレイ、画面上の移動量のワールドへの変換を持つ
+- 向きは three.js の Camera.lookAt と同じく、−z を注視点へ、上を +y に寄せる
+- 描画に渡すため、列優先の 4×4 行列 `Mat4`(合成・積・剛体の逆・透視投影・float 配列)を数学型に足した
+- 全体を表示は、表示する部位を囲む箱を引数で受け取る。箱の計算はメッシュの寸法が要るので E02-02 以降で行う
+- E02-03 以降への申し送り: Web版は起動時に全体を表示(fitView)を1回行う。ホイールのズーム(exp(deltaY×0.001))は Android では使わないので入れていない
+
 ## 検証結果
-未着手
+- テスト先行: `Mat4Test`・`OrbitCameraTest`・`CameraGoldenTest` を書き、コンパイルエラーで失敗することを確認してから実装した
+- Web版との照合: `tools/golden/generate.mjs` にカメラのデータの生成を足した(three.js r128 の PerspectiveCamera・Raycaster を Web版の updateCamera・setRay・screenDelta と同じ手順で動かす)。30視点で、位置・向き・投影行列・ビュー行列・レイ120本・画面上の移動60件が 1e-6 以内で一致
+- `./gradlew :core:test` → 全149件が成功
+- `./gradlew lint test assembleDebug` → BUILD SUCCESSFUL(lint は 0 errors、既存の警告5件のみ)
 
 ## 未検証のまま残したこと
-未着手
+- 画面に描いたときの見え方は E02-03 で確かめる
+- 全体を表示の箱の計算は E02-02 以降
 
 ## ステータス
-未着手
+完了
