@@ -177,3 +177,12 @@ class PartSpecsTest {
         assertEquals("max", expected.max, actual.max, EPS)
     }
 }
+
+/** E04-03: 首の付け根は背骨の線(骨盤の付け根と同じ前後 −0.035) */
+class NeckSpineTest {
+    @Test
+    fun 首の付け根は肋骨の上面の背骨の線() {
+        assertVec(Vec3(0.0, 0.15, -0.035), PartSpecs["neck"].attach)
+        assertEquals(PartSpecs["pelvis"].attach.z, PartSpecs["neck"].attach.z, EPS)
+    }
+}

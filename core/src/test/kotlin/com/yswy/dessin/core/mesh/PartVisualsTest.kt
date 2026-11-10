@@ -41,8 +41,8 @@ class PartVisualsTest {
     fun メッシュのワールド行列は関節の変換とメッシュの置き方の積() {
         val s = Skeleton.initial().place("neck")
         val m = meshWorldMatrix(s, "neck", 0)
-        // 首の円柱は関節の 0.035 上
-        assertVec(Vec3(0.0, 1.10 + 0.15 + 0.035, 0.0), m.transformPoint(Vec3.ZERO))
+        // 首の円柱は関節の 0.035 上。首の付け根は背骨の線(前後 −0.035)
+        assertVec(Vec3(0.0, 1.10 + 0.15 + 0.035, -0.035), m.transformPoint(Vec3.ZERO))
         val j = s.worldTransforms().getValue("neck")
         val p = PartVisuals.placement("neck", 0, s.body)
         val expected = Mat4.compose(j.position, j.rotation, j.scale) * Mat4.compose(p.position, p.rotation, p.scale)
