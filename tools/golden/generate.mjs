@@ -37,7 +37,10 @@ inject('function setRay(cx, cy){',
 inject('  buildChips();\n  configUI();',
   '  window.__dessin = { parts: parts, select: select, removePart: removePart, resetPart: resetPart, applyState: applyState,\n' +
   '    aimPart: aimPart, aimAtPoint: aimAtPoint, dragPart: dragPart, sphereRotate: sphereRotate,\n' +
-  '    setShoulderWidth: setShoulderWidth, setPelvisWidth: setPelvisWidth, setHipInset: setHipInset };\n' +
+  '    setShoulderWidth: setShoulderWidth, setPelvisWidth: setPelvisWidth, setHipInset: setHipInset,\n' +
+  '    pickPart: pickPart, romPoint: romPoint, updateGuide: updateGuide, camera: camera,\n' +
+  '    selected: function(){ return sel.name; },\n' +
+  '    setView: function(tx, ty, tz, y, p, d){ target.set(tx, ty, tz); yaw = y; pitch = p; dist = d; updateCamera(); } };\n' +
   '  buildChips();\n  configUI();');
 
 const dom = new JSDOM(html.replace(/<script[\s\S]*?<\/script>/g, ''), { runScripts: 'outside-only', pretendToBeVisual: true });
@@ -121,13 +124,17 @@ function expectAll() {
   }
 }
 
-function scenario(name, fn) {
-  // 毎回、初期状態からやり直す(肋骨以外を外し、肋骨と体型を戻す)
+// 初期状態に戻す(肋骨以外を外し、肋骨と体型を戻す)
+function resetWeb() {
   for (const id of ids) if (web.parts[id].parent && web.parts[id].parent.root) web.removePart(web.parts[id]);
   web.resetPart(web.parts.rib);
   web.setShoulderWidth(1); web.setPelvisWidth(1); web.setHipInset(0.0407);
   web.parts.head.size = 1; web.parts.head.J.scale.setScalar(1);
   web.select('rib');
+}
+
+function scenario(name, fn) {
+  resetWeb();
   lines.push(`scenario ${name}`);
   expectAll();
   fn();
@@ -330,3 +337,75 @@ const meshLines = [
 }
 writeFileSync(meshOutPath, meshLines.join('\n') + '\n');
 console.log(`書き出し: ${meshOutPath}(${meshLines.length} 行)`);
+
+/* ---------- ピッキング(E02-05) ---------- */
+// Web版の pickPart・romPoint と、pointerdown の「緑の範囲に当たったら親は選ばない」規則の結果
+
+const pickOutPath = resolve(root, 'core/src/test/resources/golden/pick-golden.txt');
+const pickLines = [
+  '# 自動生成。手で編集しない。tools/golden で `npm run generate` を実行して作り直す',
+  '# 元: docs/web-reference.html の pickPart・romPoint・pointerdown(three.js r128)',
+];
+{
+  const r = rng(200);
+  const op = (name, ...args) => { ops[name](...args); pickLines.push(['op', name, ...args.map(fmt)].join(' ')); };
+  const dotPos = (id) => { web.parts.rib.J.updateWorldMatrix(true, true); return web.parts[id].dot.getWorldPosition(new T.Vector3()); };
+  const counts = { part: 0, rom: 0, dot: 0, none: 0 };
+
+  function picks(n) {
+    const views = [[0.4, 0.14, 2.2], [0, 0.12, 2.6], [Math.PI / 2, 0.12, 2.6], [Math.PI, 0.3, 3], [0.8, 1.2, 2.5], [-0.6, -0.4, 1.8]];
+    for (const [yaw, pitch, dist] of views) {
+      web.setView(0, 1.0, 0, yaw, pitch, dist);
+      web.updateGuide();
+      const o = web.camera.position.clone();
+      const sel = web.parts[web.selected()];
+      const placed = ids.filter((id) => web.parts[id].placed || (web.parts[id].parent && web.parts[id].parent.placed));
+      for (let i = 0; i < n; i++) {
+        let target;
+        const k = r();
+        if (k < 0.25 && sel.dot && sel.dot.visible) target = dotPos(sel.name).add(randomUnit(r).multiplyScalar(r() * 0.02));
+        else if (k < 0.45 && sel.guide && sel.guide.visible) target = worldPos(sel.name).add(randomUnit(r).multiplyScalar(r() * sel.rVis));
+        // 関節のすぐ近く: 親の形と緑の範囲が重なりやすい(親を選ばない規則が効く場面)
+        else if (k < 0.65 && sel.guide && sel.guide.visible) target = worldPos(sel.name).add(randomUnit(r).multiplyScalar(r() * 0.06));
+        // 親の形(親の関節と選択中の部位の関節の間)
+        else if (k < 0.8 && sel.guide && sel.guide.visible) target = worldPos(sel.parent.name).lerp(worldPos(sel.name), r()).add(randomUnit(r).multiplyScalar(r() * 0.03));
+        else target = worldPos(placed[Math.floor(r() * placed.length)]).add(randomUnit(r).multiplyScalar(r() * 0.15));
+        const d = target.sub(o).normalize();
+        w.__ray = { o, d };
+        const part = web.pickPart({ clientX: 0, clientY: 0 });
+        const rom = web.romPoint({ clientX: 0, clientY: 0 });
+        w.__ray = null;
+        const press = (rom && part && sel.parent && part === sel.parent.name) ? null : part;
+        if (part === sel.name && sel.dot && sel.dot.visible) counts.dot++;
+        if (part) counts.part++; else counts.none++;
+        if (rom) counts.rom++;
+        pickLines.push(['pick', web.selected(), o.x, o.y, o.z, d.x, d.y, d.z].map(fmt)
+          .concat([part || '-', ...(rom ? [rom.x, rom.y, rom.z].map(fmt) : ['-', '-', '-']), press || '-']).join(' '));
+      }
+    }
+  }
+
+  resetWeb();
+  pickLines.push('scenario 初期状態');
+  picks(15);
+
+  resetWeb();
+  pickLines.push('scenario 腕だけ置いて上腕を選択');
+  for (const id of ['neck', 'clavL', 'upperArmL']) op('place', id);
+  op('aim', 'upperArmL', 0.6, -0.48, 0.64);
+  picks(25);
+
+  resetWeb();
+  pickLines.push('scenario 全部位');
+  for (const id of ids) op('place', id);
+  op('aim', 'upperArmL', 0.6, -0.48, 0.64);
+  op('aim', 'thighR', 0, -0.6, 0.8);
+  op('root', 0.1, 1.05, 0, 0.2, 0.5, -0.1, 1.1);
+  for (const sel of ['rib', 'neck', 'head', 'upperArmL', 'forearmL', 'thighR', 'shinL', 'footL', 'hipR', 'clavR']) {
+    op('place', sel);
+    picks(20);
+  }
+  console.log('ピッキングの内訳', counts);
+}
+writeFileSync(pickOutPath, pickLines.join('\n') + '\n');
+console.log(`書き出し: ${pickOutPath}(${pickLines.length} 行)`);

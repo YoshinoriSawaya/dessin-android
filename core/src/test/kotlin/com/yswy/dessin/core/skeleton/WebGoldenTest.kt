@@ -1,8 +1,7 @@
 package com.yswy.dessin.core.skeleton
 
+import com.yswy.dessin.core.golden.GoldenState
 import com.yswy.dessin.core.math.Quat
-import com.yswy.dessin.core.math.Ray
-import com.yswy.dessin.core.math.Vec3
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -20,7 +19,7 @@ class WebGoldenTest {
         val text = javaClass.getResource("/golden/web-golden.txt")?.readText()
             ?: error("golden/web-golden.txt が無い。tools/golden で npm run generate を実行する")
         val errors = mutableListOf<String>()
-        var skeleton = Skeleton.initial()
+        var state = GoldenState()
         var where = ""
         var scenarios = 0
         var ops = 0
@@ -33,30 +32,17 @@ class WebGoldenTest {
         text.lineSequence().filter { it.isNotBlank() && !it.startsWith("#") }.forEach { line ->
             val t = line.split(' ')
             fun d(i: Int) = t[i].toDouble()
-            fun v(i: Int) = Vec3(d(i), d(i + 1), d(i + 2))
+            val skeleton = state.skeleton
             when (t[0]) {
                 "scenario" -> {
-                    skeleton = Skeleton.initial()
+                    state = GoldenState()
                     where = t.drop(1).joinToString(" ")
                     scenarios++
                 }
                 "op" -> {
                     ops++
                     where = "${where.substringBefore(" / ")} / $line"
-                    val id = t.getOrNull(2) ?: ""
-                    skeleton = when (t[1]) {
-                        "place" -> skeleton.place(id)
-                        "remove" -> skeleton.remove(id)
-                        "reset" -> skeleton.reset(id)
-                        "setState" -> skeleton.withState(id, PartState(d(3), d(4), d(5)))
-                        "aim" -> skeleton.aim(id, v(3))
-                        "aimAt" -> skeleton.aimAtPoint(id, v(3))
-                        "drag" -> skeleton.drag(id, Ray(v(3), v(6)))
-                        "orb" -> skeleton.orb(id, Quat(d(3), d(4), d(5), d(6)))
-                        "root" -> skeleton.withRoot(RootTransform(v(2), Quat.fromEulerYXZ(v(5)), d(8)))
-                        "body" -> skeleton.withBody(BodyParams(d(2), d(3), d(4), d(5)))
-                        else -> error("知らない操作: $line")
-                    }
+                    state.apply(t)
                 }
                 "placed" -> {
                     val expected = t.getOrElse(1) { "" }.split(',').filter { it.isNotEmpty() }.toSet()
