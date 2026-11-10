@@ -12,11 +12,22 @@
 ## 依存
 E01-05, E01-06, E01-07, E01-09
 
+## 設計の決定
+- `Skeleton`(肋骨の置き方 `RootTransform`、各部位の状態、置いた部位の集合、`BodyParams`)を不変の data class にし、操作は新しい Skeleton を返す。E03 の保存でそのまま直列化できる
+- ワールド変換は親から順に合成する: 位置 = 親の位置 + 親の回転(取り付け位置 × 親の拡大率)、回転 = 親の回転 × `localRotation`、拡大率 = 親の拡大率 × `jointScale`。一度計算したら使い回す(lazy)
+- ワールドでの入力(`aim`・`aimAtPoint`・`drag`・`orb`)で親の空間への変換を行い、E01-05〜07 の関数につないだ
+- 可動域の半径は親の拡大率を掛ける(Web版の `rVis*ws`)。頭の大きさは頭自身の可動域には効かない
+- 肋骨のスライダー(前後の傾き・ひねり・横の傾き)用に、`Quat.fromEulerYXZ`・`toEulerYXZ` を追加した(three.js の Euler 順序 YXZ と同じ式)
+- 置いていない部位への操作も計算はできる。置いた部位だけを操作させるのは UI 側で行う(Web版も選択できるのは置いた部位だけ)
+
 ## 検証結果
-未着手
+- テスト先行: `SkeletonTest`・`EulerTest` を書き、コンパイルエラーで失敗することを確認してから実装した
+- `./gradlew :core:test` → `SkeletonTest` 21件・`EulerTest` 4件を含め、全110件が成功
+- `./gradlew lint test assembleDebug` → BUILD SUCCESSFUL(lint は 0 errors、既存の警告5件のみ)
 
 ## 未検証のまま残したこと
-未着手
+- Web版の出力との数値の照合は E01-10 で行う
+- 肋骨のドラッグ移動(画面上の移動量からワールドの移動量への変換)はカメラに依存するので E02 で扱う。ここでは `withRoot` で位置を差し替えるだけ
 
 ## ステータス
-未着手
+完了
