@@ -14,7 +14,10 @@ import com.yswy.dessin.core.skeleton.HIP_ROOT_X
 import com.yswy.dessin.core.skeleton.PELVIS_OUTER
 import com.yswy.dessin.core.skeleton.lengthScale
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.sign
+import kotlin.math.tan
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
@@ -72,6 +75,12 @@ object PartVisuals {
             CHEST_WIDEST_R - 0.014 * t * t
         }
 
+    /** 胸の上端の切り口の角度(E14-02): 前へ 25°、中央から肩へ 15° 下がる */
+    private const val CHEST_CUT_FRONT = 25 * PI / 180
+    private const val CHEST_CUT_SIDE = 15 * PI / 180
+    /** 胸の上端の背中側の縁の z。切り口はここで CHEST_TOP の高さ */
+    private val CHEST_BACK_Z = -CHEST_DEPTH * chestRadius(CHEST_TOP)
+
     /** 胸と脇腹の分かれ目の半径(胸の下端) */
     private val SPLIT_R = chestRadius(CHEST_BOTTOM)
     private val QZ90 = Quat.fromAxisAngle(Vec3.Z, PI / 2)
@@ -89,17 +98,21 @@ object PartVisuals {
 
     /**
      * 体型を反映したメッシュの置き方(Web版の setShoulderWidth・setPelvisWidth・updateHips)。
-     * 肩は長さ、骨盤は横幅、付け根は長さが変わる。首・上腕・前腕・もも・すねは長さの倍率で縦に伸びる。
+     * 肩は長さ、骨盤は横幅、付け根は長さが変わる。首・上腕・前腕・もも・すね・胸・脇腹・骨盤は長さの倍率で縦に伸びる。
      * 頭の大きさと身長は関節の拡大率で効くのでここでは扱わない。
      */
     fun placement(id: String, index: Int, body: BodyParams): MeshPlacement {
         val e = table.getValue(id)[index]
-        // 乳房は大きさで拡大する(前後は少し平たく)。E08-04
+        val spec = PartSpecs[id]
+        val k = lengthScale(spec, body)
+        fun stretched(p: Vec3) = Vec3(p.x, p.y * k, p.z)
+        // 乳房は大きさで拡大する(前後は少し平たく)。E08-04。胸の長さでは位置だけが動く(E14-03)
         if (e.part.feature == BodyFeature.BREAST) {
             val s = body.breastSize
-            return MeshPlacement(e.position, e.rotation, Vec3(s, s, 0.95 * s))
+            return MeshPlacement(stretched(e.position), e.rotation, Vec3(s, s, 0.95 * s))
         }
-        val spec = PartSpecs[id]
+        // 性器は骨盤の長さで位置だけが動く(形は伸ばさない。E14-03)
+        if (e.part.feature != null) return MeshPlacement(stretched(e.position), e.rotation, Vec3(1.0, 1.0, 1.0))
         val sg = if (spec.side == Side.RIGHT) -1.0 else 1.0
         if (index == 0) {
             when {
@@ -108,7 +121,7 @@ object PartVisuals {
                     return MeshPlacement(Vec3(sg * 0.06 * k, e.position.y, e.position.z), e.rotation, Vec3(1.0, k, 1.0))
                 }
                 spec.adjust == Adjust.PELVIS_WIDTH ->
-                    return MeshPlacement(e.position, e.rotation, Vec3(body.pelvisWidth, 1.0, 1.0))
+                    return MeshPlacement(stretched(e.position), e.rotation, Vec3(body.pelvisWidth, k, 1.0))
                 id.startsWith("hip") -> {
                     // 付け根は骨盤の外面より 0.02 外まで見せる(E04-02。骨盤に埋まって選べなかったため)
                     val len = PELVIS_OUTER * body.pelvisWidth + 0.02 - HIP_ROOT_X
@@ -116,10 +129,9 @@ object PartVisuals {
                 }
             }
         }
-        // 長さを変えた部位(首・上腕・前腕・もも・すね)の形は縦に伸ばす。関節の玉(MARKER)はそのまま(E07-02)
-        val k = lengthScale(spec, body)
+        // 長さを変えた部位(首・上腕・前腕・もも・すね、胸・脇腹・骨盤)の形は縦に伸ばす。関節の玉(MARKER)はそのまま(E07-02・E14-03)
         if (k != 1.0 && e.part.kind == MeshKind.BODY) {
-            return MeshPlacement(Vec3(e.position.x, e.position.y * k, e.position.z), e.rotation, Vec3(1.0, k, 1.0))
+            return MeshPlacement(stretched(e.position), e.rotation, Vec3(1.0, k, 1.0))
         }
         return MeshPlacement(e.position, e.rotation, Vec3(1.0, 1.0, 1.0))
     }
@@ -225,19 +237,85 @@ object PartVisuals {
         }
     }
 
-    /** 胸の輪郭の点(下から上へ) */
-    private fun chestProfile(): List<Pair<Double, Double>> = (0..CHEST_ROWS).map { i ->
-        val y = CHEST_BOTTOM + (CHEST_TOP - CHEST_BOTTOM) * i / CHEST_ROWS
-        y to chestRadius(y)
+    /**
+     * 胸の上端の切り口の高さ(E14-02。胸の関節の空間)。後ろの中央(上端の背中側の縁)が最も高く CHEST_TOP で、
+     * 前へ CHEST_CUT_FRONT、中央から肩へ CHEST_CUT_SIDE の角度で下がる
+     */
+    internal fun chestTopY(x: Double, z: Double): Double =
+        CHEST_TOP - tan(CHEST_CUT_FRONT) * (z - CHEST_BACK_Z) - tan(CHEST_CUT_SIDE) * abs(x)
+
+    /** 胸の側面の、角度 theta の列での点(theta = 0 が前、x = r sin θ・z = 深さ × r cos θ) */
+    private fun chestPoint(y: Double, theta: Double): Vec3 {
+        val r = chestRadius(y)
+        return Vec3(r * sin(theta), y, CHEST_DEPTH * r * cos(theta))
     }
 
-    private fun chest(): Mesh = Primitives.lathe(chestProfile(), 28).scaled(1.0, 1.0, CHEST_DEPTH)
+    /** 角度 theta の列が切り口に当たる高さ。下端から上端の間で二分法で求める */
+    private fun chestColumnTop(theta: Double): Double {
+        fun above(y: Double) = chestPoint(y, theta).let { it.y > chestTopY(it.x, it.z) }
+        if (!above(CHEST_TOP)) return CHEST_TOP
+        var lo = CHEST_BOTTOM
+        var hi = CHEST_TOP
+        repeat(40) { val mid = (lo + hi) / 2; if (above(mid)) hi = mid else lo = mid }
+        return lo
+    }
 
-    /** 前後の縦線(輪郭に沿う)と、y = 0.06 の輪(もとの肋骨の輪の高さ) */
+    /** 角度 theta の列の輪郭の高さ(下端から切り口まで CHEST_ROWS 等分) */
+    private fun chestColumn(theta: Double): List<Double> {
+        val top = chestColumnTop(theta)
+        return (0..CHEST_ROWS).map { i -> CHEST_BOTTOM + (top - CHEST_BOTTOM) * i / CHEST_ROWS }
+    }
+
+    /**
+     * 胸の形(E08-01・E14-02)。肋骨の輪郭を回した面(前後を CHEST_DEPTH 倍)を、列ごとに切り口の高さで止め、
+     * 切り口には斜めのふたをする。下端は水平のふた
+     */
+    private fun chest(): Mesh {
+        val segments = 28
+        val b = MeshBuilder()
+        val thetas = (0..segments).map { it.toDouble() / segments * 2 * PI }
+        val columns = thetas.map { chestColumn(it) }
+        val rows = Array(segments + 1) { IntArray(CHEST_ROWS + 1) }
+        for ((x, theta) in thetas.withIndex()) {
+            val s = sin(theta)
+            val c = cos(theta)
+            for ((i, y) in columns[x].withIndex()) {
+                // 輪郭の接線に垂直な向き(lathe と同じ)を、前後の縮みに合わせて傾ける
+                val y0 = columns[x][maxOf(i - 1, 0)]
+                val y1 = columns[x][minOf(i + 1, CHEST_ROWS)]
+                val nr0 = y1 - y0
+                val ny0 = -(chestRadius(y1) - chestRadius(y0))
+                rows[x][i] = b.vertexCount
+                b.vertex(chestPoint(y, theta), Vec3(nr0 * s, ny0, nr0 * c / CHEST_DEPTH).normalized())
+            }
+        }
+        for (x in 0 until segments) {
+            for (i in 0 until CHEST_ROWS) {
+                b.triangle(rows[x][i + 1], rows[x][i], rows[x + 1][i + 1])
+                b.triangle(rows[x][i], rows[x + 1][i], rows[x + 1][i + 1])
+            }
+        }
+        // 上のふた: 切り口の縁を、縁の重心から扇で張る。法線は切り口の面の向き
+        fun cutNormal(px: Double) = Vec3(tan(CHEST_CUT_SIDE) * sign(px), 1.0, tan(CHEST_CUT_FRONT)).normalized()
+        val rim = thetas.mapIndexed { x, theta -> chestPoint(columns[x].last(), theta) }
+        val cx = rim.dropLast(1).sumOf { it.x } / segments
+        val cz = rim.dropLast(1).sumOf { it.z } / segments
+        val center = b.vertexCount
+        b.vertex(Vec3(cx, chestTopY(cx, cz), cz), cutNormal(0.0))
+        rim.forEach { b.vertex(it, cutNormal(it.x)) }
+        for (x in 0 until segments) b.triangle(center + 1 + x, center + 2 + x, center)
+        // 下のふた(水平)
+        val bottomCenter = b.vertexCount
+        b.vertex(Vec3(0.0, CHEST_BOTTOM, 0.0), Vec3(0.0, -1.0, 0.0))
+        thetas.forEach { b.vertex(chestPoint(CHEST_BOTTOM, it), Vec3(0.0, -1.0, 0.0)) }
+        for (x in 0 until segments) b.triangle(bottomCenter + 2 + x, bottomCenter + 1 + x, bottomCenter)
+        return b.build()
+    }
+
+    /** 前後の縦線(輪郭に沿い、切り口で止まる)と、y = 0.06 の輪(もとの肋骨の輪の高さ) */
     private fun chestLines(): List<Mesh> = buildList {
-        val profile = chestProfile()
-        add(tube(profile.map { (y, r) -> Vec3(0.0, y, CHEST_DEPTH * r + LE) }, closed = false))
-        add(tube(profile.map { (y, r) -> Vec3(0.0, y, -CHEST_DEPTH * r - LE) }, closed = false))
+        add(tube(chestColumn(0.0).map { y -> Vec3(0.0, y, CHEST_DEPTH * chestRadius(y) + LE) }, closed = false))
+        add(tube(chestColumn(PI).map { y -> Vec3(0.0, y, -CHEST_DEPTH * chestRadius(y) - LE) }, closed = false))
         val ringY = 0.06
         val r = chestRadius(ringY) + LE
         add(tube((0 until 48).map { val t = it / 48.0 * 2 * PI; Vec3(r * cos(t), ringY, CHEST_DEPTH * r * sin(t)) }, closed = true))
