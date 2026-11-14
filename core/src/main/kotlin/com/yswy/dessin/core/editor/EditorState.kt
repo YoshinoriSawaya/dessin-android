@@ -95,6 +95,11 @@ data class EditorState(
     /** 選択中の部位の向きを戻す(Web版の「向きを戻す」)。胸は位置・回転・大きさを、ほかは自然な姿勢(E09)に戻す */
     fun resetSelected(): EditorState {
         val spec = PartSpecs[selected]
+        if (skeleton.isAnchorRoot(selected)) {
+            // 骨盤が根のときの骨盤は、位置を保って骨盤をまっすぐ(ワールドの向きを初めの向き)に戻す(E14-04)
+            val j = skeleton.worldTransforms().getValue(selected)
+            return copy(skeleton = skeleton.rotatedAbout(j.position, j.rotation.inverse()))
+        }
         return copy(skeleton = if (spec.isRoot) skeleton.reset(selected) else skeleton.withState(selected, NaturalPose.state(spec)))
     }
 
@@ -113,7 +118,7 @@ data class EditorState(
         get() {
             val spec = PartSpecs[selected]
             return when {
-                spec.isRoot -> "ドラッグで画面上の位置を決めます。"
+                spec.isRoot || skeleton.isAnchorRoot(selected) -> "ドラッグで画面上の位置を決めます。"
                 spec.hinge != null -> "緑の扇の中をドラッグ、または2回タップして曲げます。"
                 else -> "緑の範囲の中をドラッグ、または2回タップして向きを決めます。"
             }

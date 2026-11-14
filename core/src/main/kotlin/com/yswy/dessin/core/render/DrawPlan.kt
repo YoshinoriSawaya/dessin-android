@@ -61,7 +61,8 @@ fun drawPlan(skeleton: Skeleton, selected: String, options: DisplayOptions): Dra
             }
         }
     }
-    val guide = selected.takeIf { options.guides && skeleton.isPlaced(it) && !PartSpecs[it].isRoot }
+    // 根(胸、骨盤が根のときの骨盤。E14-04)には可動域を出さない
+    val guide = selected.takeIf { options.guides && skeleton.isPlaced(it) && !PartSpecs[it].isRoot && !skeleton.isAnchorRoot(it) }
     return DrawPlan(meshes, guide)
 }
 
