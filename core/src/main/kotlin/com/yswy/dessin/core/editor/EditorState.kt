@@ -21,6 +21,7 @@ data class PartChip(val id: String, val label: String, val look: ChipLook) {
  * @property skeleton 操作中の人形(E13 で複数の人形を置けるようにした。今までの操作はすべて操作中の人形に効く)
  * @property others 操作中でない人形(場面での並び順。操作中の人形は activeDoll 番目に入る)
  * @property activeDoll 操作中の人形が場面の何番目か
+ * @property dollMode 人形のモード(E13-02)。パネルで人形を選ぶ・足す・消す。3D では部位を動かさず、タップした人形に切り替える
  */
 data class EditorState(
     val skeleton: Skeleton = NaturalPose.initial,
@@ -31,6 +32,7 @@ data class EditorState(
     val cameraOnly: Boolean = false,
     val others: List<Skeleton> = emptyList(),
     val activeDoll: Int = 0,
+    val dollMode: Boolean = false,
 ) {
     /** 場面のすべての人形(並び順。activeDoll 番目が操作中) */
     val dolls: List<Skeleton> get() = others.take(activeDoll) + skeleton + others.drop(activeDoll)
@@ -95,6 +97,8 @@ data class EditorState(
     fun togglePanel(): EditorState = copy(panelOpen = !panelOpen)
 
     fun toggleCameraOnly(): EditorState = copy(cameraOnly = !cameraOnly)
+
+    fun toggleDollMode(): EditorState = copy(dollMode = !dollMode)
 
     fun withCamera(camera: OrbitCamera): EditorState = copy(camera = camera)
 

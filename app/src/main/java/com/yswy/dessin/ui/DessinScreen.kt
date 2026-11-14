@@ -1,5 +1,7 @@
 package com.yswy.dessin.ui
 
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import com.yswy.dessin.core.editor.wheelZoom
 import com.yswy.dessin.core.editor.setAnchor
 import com.yswy.dessin.core.editor.setSex
@@ -85,6 +87,8 @@ fun DessinScreen(start: EditorState) {
     val poses = remember { Shelf.poses(context) }
     val bodies = remember { Shelf.bodies(context) }
     var dialog by remember { mutableStateOf<PoseDialog?>(null) }
+    // 人形を消す前の確認(E13-02)
+    var confirmRemoveDoll by remember { mutableStateOf(false) }
 
     val actions = PanelActions(
         onSelect = { state = state.select(it) },
@@ -96,6 +100,9 @@ fun DessinScreen(start: EditorState) {
         onHandShape = { shape -> state = state.setHandShape(shape) },
         onSex = { sex -> state = state.setSex(sex) },
         onAnchor = { anchor -> state = state.setAnchor(anchor) },
+        onSwitchDoll = { i -> state = state.switchDoll(i) },
+        onAddDoll = { state = state.addDoll().fitView(aspect) },
+        onRemoveDoll = { confirmRemoveDoll = true },
     )
 
     // 指の操作の途中の状態。画面にひとつ
@@ -141,9 +148,14 @@ fun DessinScreen(start: EditorState) {
                 Text(HINT, fontSize = 12.sp, lineHeight = 19.sp, color = Palette.Muted, modifier = Modifier.padding(start = 12.dp, end = 104.dp, top = 10.dp))
             }
             if (state.options.guides) Legend(Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = 8.dp))
-            // カメラだけを操作するモード(E12)。押している間は部位を動かさず、視点だけを動かす
-            Box(Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 12.dp)) {
+            // カメラだけを操作するモード(E12)と、人形のモード(E13-02)
+            Column(
+                Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 12.dp),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 ToolChip("カメラ", pressed = state.cameraOnly) { state = state.toggleCameraOnly() }
+                ToolChip("人形", pressed = state.dollMode) { state = state.toggleDollMode() }
             }
         }
         ControlPanel(
@@ -161,6 +173,18 @@ fun DessinScreen(start: EditorState) {
                 ToolChip("名前を付けて保存") { dialog = PoseDialog.Save(SaveKind.BODY, bodies.suggestName()) }
                 ToolChip("保存した体型") { bodies.list()?.let { dialog = PoseDialog.List(SaveKind.BODY, it) } }
             },
+        )
+    }
+
+    if (confirmRemoveDoll) {
+        AlertDialog(
+            onDismissRequest = { confirmRemoveDoll = false },
+            title = { Text("人形を消しますか?") },
+            text = { Text("人形${state.activeDoll + 1}を消します。元に戻せません。") },
+            confirmButton = {
+                TextButton(onClick = { state = state.removeDoll(); confirmRemoveDoll = false }) { Text("消す", color = Palette.Accent) }
+            },
+            dismissButton = { TextButton(onClick = { confirmRemoveDoll = false }) { Text("キャンセル", color = Palette.Ink) } },
         )
     }
 
