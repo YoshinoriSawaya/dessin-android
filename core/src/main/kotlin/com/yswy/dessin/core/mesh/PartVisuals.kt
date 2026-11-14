@@ -149,9 +149,17 @@ object PartVisuals {
             "thigh" -> { mk(cyl(0.052, 0.39), Vec3(0.0, -0.2, 0.0), edges = true, lines = cylLines(0.052, 0.39, ring = true)); marker(0.055) }
             "shin" -> { mk(cyl(0.038, 0.37), Vec3(0.0, -0.19, 0.0), edges = true, lines = cylLines(0.038, 0.37, ring = true)); marker(0.044) }
             "foot" -> {
-                mk(Primitives.box(0.075, 0.045, 0.20), Vec3(0.0, -0.04, 0.05), edges = true,
-                    lines = listOf(tube(listOf(Vec3(0.0, 0.0225 + LE, -0.10), Vec3(0.0, 0.0225 + LE, 0.10)), closed = false)))
+                // 足はかかとからつま先の付け根まで(z −0.05〜0.105)。かかとは横向きの円柱で丸める(E08-03)
+                mk(Primitives.box(0.075, 0.045, 0.1325), Vec3(0.0, -0.04, 0.03875), edges = true,
+                    lines = listOf(tube(listOf(Vec3(0.0, 0.0225 + LE, -0.06625), Vec3(0.0, 0.0225 + LE, 0.06625)), closed = false)))
                 marker(0.036)
+                mk(Primitives.cylinder(0.0225, 0.0225, 0.075, 20), Vec3(0.0, -0.04, -0.0275), QZ90, edges = true)
+            }
+            "toe" -> {
+                // つま先(z 0.105〜0.15)。裏は足の裏と同じ高さで、上は少し低い(E08-03)
+                // 関節は足の空間で y = −0.045。箱の中心を関節の高さに置くと、裏(−0.0175)が足の裏(−0.0625)と揃う
+                mk(Primitives.box(0.072, 0.035, 0.045), Vec3(0.0, 0.0, 0.0225), edges = true)
+                marker(0.022)
             }
             else -> error("見た目の定義が無い: $id")
         }

@@ -83,6 +83,7 @@ data class EditorState(
             listOf("handL", "handR", "thighL", "thighR"),
             listOf("shinL", "shinR"),
             listOf("footL", "footR"),
+            listOf("toeL", "toeR"),
         )
     }
 }

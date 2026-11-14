@@ -18,14 +18,14 @@ class PartSpecsTest {
         "rib" to null,
         "neck" to "rib", "head" to "neck", "flank" to "rib", "pelvis" to "flank",
         "clavL" to "rib", "upperArmL" to "clavL", "forearmL" to "upperArmL", "handL" to "forearmL",
-        "hipL" to "pelvis", "thighL" to "hipL", "shinL" to "thighL", "footL" to "shinL",
+        "hipL" to "pelvis", "thighL" to "hipL", "shinL" to "thighL", "footL" to "shinL", "toeL" to "footL",
         "clavR" to "rib", "upperArmR" to "clavR", "forearmR" to "upperArmR", "handR" to "forearmR",
-        "hipR" to "pelvis", "thighR" to "hipR", "shinR" to "thighR", "footR" to "shinR",
+        "hipR" to "pelvis", "thighR" to "hipR", "shinR" to "thighR", "footR" to "shinR", "toeR" to "footR",
     )
 
     @Test
     fun 部位は20個で親子関係がWeb版と一致する() {
-        assertEquals(21, PartSpecs.all.size)
+        assertEquals(23, PartSpecs.all.size) // E08-03 でつま先(左右)を足した
         assertEquals(expectedParents, PartSpecs.all.associate { it.id to it.parent })
     }
 
@@ -49,6 +49,7 @@ class PartSpecsTest {
             4 to setOf("handL", "handR", "thighL", "thighR"),
             5 to setOf("shinL", "shinR"),
             6 to setOf("footL", "footR"),
+            7 to setOf("toeL", "toeR"), // E08-03
         )
         assertEquals(expected, PartSpecs.all.groupBy({ depth(it.id) }, { it.id }).mapValues { it.value.toSet() })
     }
@@ -57,7 +58,8 @@ class PartSpecsTest {
     fun 子の一覧() {
         assertEquals(listOf("neck", "flank", "clavL", "clavR"), PartSpecs.children("rib").map { it.id })
         assertEquals(listOf("hipL", "hipR"), PartSpecs.children("pelvis").map { it.id })
-        assertEquals(emptyList<PartSpec>(), PartSpecs.children("footL"))
+        assertEquals(listOf("toeL"), PartSpecs.children("footL").map { it.id }) // E08-03
+        assertEquals(emptyList<PartSpec>(), PartSpecs.children("toeL"))
     }
 
     @Test
@@ -130,9 +132,10 @@ class PartSpecsTest {
     }
 
     @Test
-    fun 足だけ基準フレームの参照軸がy() {
+    fun 足とつま先だけ基準フレームの参照軸がy() {
+        // E08-03: つま先も足と同じく前を向く部位なので参照軸は y
         PartSpecs.all.filterNot { it.isRoot }.forEach {
-            val expected = if (it.id.startsWith("foot")) Vec3.Y else Vec3.Z
+            val expected = if (it.id.startsWith("foot") || it.id.startsWith("toe")) Vec3.Y else Vec3.Z
             assertVec(expected, it.ref)
         }
         assertVec(Vec3.Z, PartSpecs["footL"].restDir)

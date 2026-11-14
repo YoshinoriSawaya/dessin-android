@@ -18,7 +18,7 @@ class ChestFlankTest {
 
     @Test
     fun 胸と脇腹と骨盤の親子() {
-        assertEquals(21, PartSpecs.all.size)
+        assertEquals(23, PartSpecs.all.size) // E08-03 でつま先(左右)を足した
         assertEquals(null, PartSpecs["rib"].parent)
         assertEquals("rib", PartSpecs["flank"].parent)
         assertEquals("flank", PartSpecs["pelvis"].parent)

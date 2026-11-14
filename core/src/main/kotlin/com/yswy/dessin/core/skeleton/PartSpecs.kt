@@ -4,11 +4,13 @@ import com.yswy.dessin.core.math.Vec3
 import kotlin.math.PI
 
 /**
- * 全20部位の定義。値は docs/web-reference.html の spec(...) を正とし、左側の値で書く。
+ * 全23部位の定義(E08-03 でつま先を足した)。値は docs/web-reference.html の spec(...) を正とし、左側の値で書く。
  * 右側は取り付け位置・休止方向の x を反転し、コーンの ±x を入れ替え、ロールを鏡像にする。
  */
 object PartSpecs {
     private const val D2R = PI / 180
+    /** つま先のヒンジの曲げる向き。φ が正で上(足の甲の側)へ曲がる */
+    private const val TOE_PSI = PI
 
     val all: List<PartSpec> = buildList {
         add(PartSpec("rib", "胸", null, null, Vec3.ZERO, Vec3.ZERO, Vec3.Z, 0.0, 0.0, null, null, RollRange(0.0, 0.0), null))
@@ -37,6 +39,9 @@ object PartSpecs {
             // ひざは大腿骨の丸み(顆)の中心で回り、曲げるとすねの付け根が後ろ上へ転がるように移る(E06-02)
             add(sided("shin", "すね", "thigh$s", v(0, -0.40, 0), v(0, -1, 0), 0.38, 0.38, null, roll(0, 0), hinge = Hinge(0.0, 0.0, 150 * D2R), pivot = v(0, 0.03, 0)))
             add(sided("foot", "足", "shin$s", v(0, -0.38, 0), v(0, 0, 1), 0.16, 0.2, cone(20, 45, 20, 20), roll(0, 0), ref = Vec3.Y))
+            // つま先は足の前の付け根(親指の付け根の高さ)で曲がる。上へ 60°、下へ 30°(E08-03)
+            add(sided("toe", "つま先", "foot$s", v(0, -0.045, 0.105), v(0, 0, 1), 0.045, 0.08, null, roll(0, 0),
+                hinge = Hinge(TOE_PSI, -30 * D2R, 60 * D2R), ref = Vec3.Y))
         }
     }
 
