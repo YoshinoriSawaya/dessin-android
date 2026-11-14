@@ -59,5 +59,21 @@ fun EditorState.loadPose(pose: Skeleton, aspect: Double): EditorState =
         selected = if (pose.isPlaced(selected)) selected else "rib",
     ).fitView(aspect)
 
+/**
+ * 保存した場面を読み込む(E13-04)。全員を差し替え(体型も場面のもの)、最初の人形を操作中にして全体を表示する。
+ * 根は胸に戻る(保存しないため)。選んでいた部位が最初の人形に無ければ胸を選ぶ
+ */
+fun EditorState.loadScene(dolls: List<Skeleton>, aspect: Double): EditorState {
+    val ds = dolls.take(MAX_DOLLS).map { NaturalPose.unplacedNatural(it) }
+    if (ds.isEmpty()) return this
+    val first = ds[0]
+    return copy(
+        skeleton = first,
+        others = ds.drop(1),
+        activeDoll = 0,
+        selected = if (first.isPlaced(selected)) selected else "rib",
+    ).fitView(aspect)
+}
+
 /** 保存した体型を読み込む。ポーズ・選択・視点はそのまま(E07-03) */
 fun EditorState.loadBody(body: BodyParams): EditorState = copy(skeleton = skeleton.withBody(body))

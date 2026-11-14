@@ -6,15 +6,15 @@ import android.widget.Toast
 import com.yswy.dessin.core.pose.BodyLibrary
 import com.yswy.dessin.core.pose.LibraryResult
 import com.yswy.dessin.core.pose.NamedLibrary
-import com.yswy.dessin.core.pose.PoseLibrary
+import com.yswy.dessin.core.pose.SavedItem
+import com.yswy.dessin.core.pose.SceneLibrary
 import com.yswy.dessin.core.pose.SavedPoseSummary
 import com.yswy.dessin.core.skeleton.BodyParams
-import com.yswy.dessin.core.skeleton.Skeleton
 import com.yswy.dessin.storage.FilePoseStore
 import java.io.File
 
 /** 保存するものの種類。label はダイアログや文言に使う */
-enum class SaveKind(val label: String) { POSE("ポーズ"), BODY("体型") }
+enum class SaveKind(val label: String) { POSE("場面"), BODY("体型") }
 
 /** 表示中の保存のダイアログ */
 sealed interface PoseDialog {
@@ -70,9 +70,9 @@ class Shelf<T>(private val context: Context, private val library: NamedLibrary<T
     companion object {
         private const val TAG = "Shelf"
 
-        /** ポーズは files/poses、体型は files/bodies(E07-03) */
-        fun poses(context: Context): Shelf<Skeleton> =
-            Shelf(context, PoseLibrary(FilePoseStore(File(context.filesDir, "poses"))), SaveKind.POSE.label)
+        /** 場面(E13-04。今までのポーズのファイルも読む)は files/poses、体型は files/bodies(E07-03) */
+        fun poses(context: Context): Shelf<SavedItem> =
+            Shelf(context, SceneLibrary(FilePoseStore(File(context.filesDir, "poses"))), SaveKind.POSE.label)
 
         fun bodies(context: Context): Shelf<BodyParams> =
             Shelf(context, BodyLibrary(FilePoseStore(File(context.filesDir, "bodies"), ".body")), SaveKind.BODY.label)

@@ -28,10 +28,11 @@ data class SavedPoseSummary(val id: String, val name: String, val savedAt: Long)
  * dessin-saved 1
  * name <名前>
  * saved <保存した時刻(ミリ秒)>
- * <kind>          ← pose か body
+ * <kind>          ← pose・body・scene(E13-04)
  * <中身の文字列>
  * ```
  * 中身が kind と違うファイル(ポーズの置き場所に体型など)は、壊れたファイルと同じく読めないものとして扱う。
+ * ただし otherKinds に書いた種類は、それぞれの読み方で読む(場面の一覧が今までのポーズのファイルを読むため。E13-04)
  */
 open class NamedLibrary<T>(
     private val store: PoseStore,
@@ -41,6 +42,7 @@ open class NamedLibrary<T>(
     private val decodeItem: (String) -> T?,
     private val clock: () -> Long,
     private val newId: () -> String,
+    private val otherKinds: Map<String, (String) -> T?> = emptyMap(),
 ) {
     /** 直前の list で読めなかった(壊れていた)ファイルの id。ログに残すため */
     var lastBroken: List<String> = emptyList()
@@ -96,10 +98,11 @@ open class NamedLibrary<T>(
 
     private fun parse(text: String): Parsed? {
         val lines = text.lines()
-        if (lines.size < 4 || lines[0] != HEADER || lines[3] != kind) return null
+        if (lines.size < 4 || lines[0] != HEADER) return null
+        val decode = if (lines[3] == kind) decodeItem else otherKinds[lines[3]] ?: return null
         val name = lines[1].removePrefix("name ").takeIf { lines[1].startsWith("name ") } ?: return null
         val savedAt = lines[2].removePrefix("saved ").toLongOrNull()?.takeIf { lines[2].startsWith("saved ") } ?: return null
-        val item = decodeItem(lines.drop(4).joinToString("\n")) ?: return null
+        val item = decode(lines.drop(4).joinToString("\n")) ?: return null
         return Parsed(name, savedAt, item)
     }
 
@@ -147,4 +150,25 @@ class BodyLibrary(
     store, "body", "体型", { BodyCodec.encodeLine(it) + "\n" },
     { BodyCodec.decodeLine(it) },
     clock, newId,
+)
+
+/**
+ * 名前を付けて保存した場面の一覧(E13-04)。保存は場面(全員)。今までの1体のポーズのファイル(kind が pose)も読み、
+ * SavedItem.Pose として返す(読み込むと操作中の人形に入る)。置き場所はポーズと同じ
+ */
+class SceneLibrary(
+    store: PoseStore,
+    clock: () -> Long = System::currentTimeMillis,
+    newId: () -> String = { java.util.UUID.randomUUID().toString() },
+) : NamedLibrary<SavedItem>(
+    store, "scene", "場面",
+    { item ->
+        when (item) {
+            is SavedItem.Scene -> SceneCodec.encode(item.dolls)
+            is SavedItem.Pose -> SceneCodec.encode(listOf(item.skeleton))
+        }
+    },
+    { text -> SceneCodec.decode(text)?.let { SavedItem.Scene(it) } },
+    clock, newId,
+    otherKinds = mapOf("pose" to { text: String -> (PoseCodec.decode(text) as? PoseDecodeResult.Ok)?.skeleton?.let { SavedItem.Pose(it) } }),
 )
