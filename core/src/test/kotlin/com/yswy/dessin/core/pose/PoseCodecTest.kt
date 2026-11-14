@@ -24,7 +24,6 @@ class PoseCodecTest {
         var s = Skeleton.initial()
         PartSpecs.all.forEach { s = s.place(it.id) }
         s = s.withRoot(RootTransform(Vec3(0.12, 0.95, -0.3), Quat.fromEulerYXZ(Vec3(0.3, -1.2, 0.4)), 1.3))
-        s = s.withBody(BodyParams(headSize = 1.2, shoulderWidth = 0.8, pelvisWidth = 1.4, hipInset = 0.03))
         s = s.aim("upperArmL", Vec3(0.3, 0.2, 0.9).normalized())
         s = s.orb("forearmL", Quat.fromAxisAngle(Vec3(1.0, 0.2, 0.0), -1.0))
         s = s.drag("thighR", Ray(Vec3(0.0, 0.5, 3.0), Vec3(0.0, 0.0, -1.0)))
@@ -82,7 +81,8 @@ class PoseCodecTest {
     @Test
     fun 数値が読めない行や項目が足りない行はエラー() {
         assertError("${header()}\nroot 0 1.1 0 0 0 0 1 abc\n")
-        assertError("${header()}\nbody 1 1 1\n")
+        assertError("${header()}\nbody 1 1 1 0.04\n") // 版3に体型の行は無い(E07-03)
+        assertError("dessin-pose 2\nbody 1 1 1\n")
         assertError("${header()}\npart neck 1 0.1 0.2\n")
         assertError("${header()}\npart neck 2 0 0 0\n")
         assertError("${header()}\nunknown 1 2 3\n")
@@ -128,7 +128,8 @@ class PoseCodecTest {
 
     @Test
     fun 体型と肋骨の大きさは範囲に収める() {
-        val s = decodeOk("${header()}\nbody 9 0.1 2 -1\nroot 0 1 0 0 0 0 1 5\n")
+        // 体型の行は版2までの古いデータにだけある(E07-03)
+        val s = decodeOk("dessin-pose 2\nbody 9 0.1 2 -1\nroot 0 1 0 0 0 0 1 5\n")
         assertEquals(BodyParams(headSize = 1.4, shoulderWidth = 0.4, pelvisWidth = 1.5, hipInset = 0.0), s.body)
         assertEquals(1.6, s.root.scale, EPS)
     }
@@ -165,5 +166,22 @@ class PoseCodecTest {
     fun 前後の空白と空行と改行コードの違いは許す() {
         val text = PoseCodec.encode(posed).replace("\n", "\r\n\r\n") + "   "
         assertEquals(posed, decodeOk("  $text"))
+    }
+
+    // ---------- E07-03: ポーズは体型を持たない ----------
+
+    @Test
+    fun 版3は体型の行を書かない() {
+        assertEquals("dessin-pose 3", header())
+        val text = PoseCodec.encode(posed.withBody(BodyParams(headSize = 1.3)))
+        assertTrue(text.lines().none { it.startsWith("body") })
+        // 読み込むと体型は既定の値
+        assertEquals(BodyParams(), decodeOk(text).body)
+    }
+
+    @Test
+    fun 版2の体型の行は読める() {
+        val s = decodeOk("dessin-pose 2\nbody 1.2 0.8 1.4 0.03\n")
+        assertEquals(BodyParams(headSize = 1.2, shoulderWidth = 0.8, pelvisWidth = 1.4, hipInset = 0.03), s.body)
     }
 }

@@ -78,10 +78,11 @@ class SkeletonTest {
     }
 
     @Test
-    fun 頭を外すと頭の大きさが戻る_肩幅は戻らない() {
+    fun 部位を外しても体型は変わらない() {
+        // E07-03 で変更: 体型はポーズと別に持つので、頭を外しても頭の大きさを戻さない(v1 は Web版に合わせて戻していた)
         val s = initial.placeAll("neck", "head", "clavL")
             .withBody(BodyParams(headSize = 1.3, shoulderWidth = 1.2))
-        assertEquals(1.0, s.remove("neck").body.headSize, EPS)
+        assertEquals(1.3, s.remove("neck").body.headSize, EPS)
         assertEquals(1.2, s.remove("clavL").body.shoulderWidth, EPS)
         assertEquals(1.3, s.remove("clavL").body.headSize, EPS)
     }

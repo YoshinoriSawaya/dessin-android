@@ -29,7 +29,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-/** 名前を付けて保存する。名前の欄には候補(「ポーズ N」)を入れておく */
+/** 名前を付けて保存する。名前の欄には候補(「ポーズ N」「体型 N」)を入れておく */
 @Composable
 fun SavePoseDialog(suggestedName: String, onSave: (String) -> Unit, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf(suggestedName) }
@@ -53,18 +53,18 @@ fun SavePoseDialog(suggestedName: String, onSave: (String) -> Unit, onDismiss: (
 private val DateFormat = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
 
 /**
- * 保存したポーズの一覧。読み込み・削除(削除は確認してから)。
+ * 保存したポーズ・体型の一覧。読み込み・削除(削除は確認してから)。label は「ポーズ」か「体型」。
  * ボタンの色: 主な操作(読み込む・確認の削除)はアクセント、閉じる・キャンセルは墨、一覧の削除は淡い色
  */
 @Composable
-fun PoseListDialog(items: List<SavedPoseSummary>, onLoad: (String) -> Unit, onDelete: (String) -> Unit, onDismiss: () -> Unit) {
+fun PoseListDialog(label: String, items: List<SavedPoseSummary>, onLoad: (String) -> Unit, onDelete: (String) -> Unit, onDismiss: () -> Unit) {
     var deleting by remember { mutableStateOf<SavedPoseSummary?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("保存したポーズ") },
+        title = { Text("保存した$label") },
         text = {
             if (items.isEmpty()) {
-                Text("保存したポーズはありません", color = Palette.Muted)
+                Text("保存した${label}はありません", color = Palette.Muted)
             } else {
                 LazyColumn(Modifier.heightIn(max = 360.dp)) {
                     items(items, key = { it.id }) { item ->

@@ -6,6 +6,7 @@ import com.yswy.dessin.core.math.EPS
 import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.mesh.fitBounds
 import com.yswy.dessin.core.render.DisplayOptions
+import com.yswy.dessin.core.skeleton.BodyParams
 import com.yswy.dessin.core.skeleton.Skeleton
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -72,5 +73,27 @@ class LoadPoseTest {
         val loaded = Skeleton.initial().place("flank").place("pelvis")
         assertEquals("rib", EditorState().select("neck").loadPose(loaded, 1.0).selected)
         assertEquals("pelvis", EditorState().select("flank").select("pelvis").loadPose(loaded, 1.0).selected)
+    }
+
+    @Test
+    fun 読み込んでもいまの体型を保つ_ポーズの体型は読み飛ばす() {
+        // E07-03: 体型はポーズと別に持つ。古いポーズ(版2)に入っている体型も使わない
+        val body = BodyParams(headSize = 1.2, neckLength = 1.5)
+        val loaded = Skeleton.initial().place("flank").withBody(BodyParams(headSize = 0.7))
+        val s = EditorState().let { it.copy(skeleton = it.skeleton.withBody(body)) }.loadPose(loaded, 1.0)
+        assertEquals(body, s.skeleton.body)
+        assertTrue(s.skeleton.isPlaced("flank"))
+    }
+}
+
+/** E07-03: 保存した体型を読み込む */
+class LoadBodyTest {
+    @Test
+    fun 体型だけを差し替え_ポーズと選択は保つ() {
+        val posed = EditorState().select("neck").let { it.copy(skeleton = it.skeleton.aim("neck", Vec3(0.2, 1.0, 0.1).normalized())) }
+        val body = BodyParams(shoulderWidth = 1.3, thighLength = 1.1)
+        val s = posed.loadBody(body)
+        assertEquals(posed.skeleton.withBody(body), s.skeleton)
+        assertEquals("neck", s.selected)
     }
 }

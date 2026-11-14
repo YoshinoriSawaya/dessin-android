@@ -69,8 +69,9 @@ class ChestFlankTest {
     }
 
     @Test
-    fun 新しい保存データは版2() {
-        assertEquals(2, PoseCodec.VERSION)
+    fun 新しい保存データは版2以降() {
+        // E07-03 で版3(体型の行を外した)に上げた。脇腹を含めて保存して戻せることは変わらない
+        assertTrue(PoseCodec.VERSION >= 2)
         val s = Skeleton.initial().place("flank").place("pelvis")
         assertEquals(s, (PoseCodec.decode(PoseCodec.encode(s)) as PoseDecodeResult.Ok).skeleton)
     }
