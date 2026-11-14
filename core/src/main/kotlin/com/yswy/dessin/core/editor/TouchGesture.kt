@@ -3,6 +3,7 @@ package com.yswy.dessin.core.editor
 import com.yswy.dessin.core.camera.OrbitCamera
 import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.pick.pickAtPress
+import com.yswy.dessin.core.pick.pickDoll
 import com.yswy.dessin.core.skeleton.PartSpecs
 import kotlin.math.hypot
 
@@ -15,6 +16,7 @@ import kotlin.math.hypot
  * - タップ: 押した部位を選ぶ。選択中の部位の緑の範囲を 420ms 以内・32dp 以内に2回タップすると、その点へ向ける
  * - カメラだけを操作するモード(E12): 部位を拾わない(1本指は視点を回すだけ、タップでは選ばない)。2本指はピンチに加えて、
  *   2本の指の真ん中の動きで平行移動する
+ * - 人形のモード(E13-02): 指の動きはカメラだけを操作するモードと同じ。タップした人形に切り替える
  *
  * 指ごとの途中の状態を持つので、画面ごとに1つ作って使い続ける。
  */
@@ -33,6 +35,7 @@ class TouchGesture {
     private var pinchMidY = 0.0
     private var downPart: String? = null
     private var downRom: Vec3? = null
+    private var downDoll: Int? = null
     private var lastTap: Tap? = null
 
     fun down(state: EditorState, id: Int, x: Double, y: Double, time: Long, width: Double, height: Double): EditorState {
@@ -41,9 +44,11 @@ class TouchGesture {
             startX = x
             startY = y
             moved = false
-            if (state.cameraOnly) {
+            downDoll = null
+            if (state.cameraOnly || state.dollMode) {
                 downPart = null
                 downRom = null
+                if (state.dollMode) downDoll = pickDoll(state.dolls, camera(state).ray(x, y, width, height))
             } else {
                 val press = pickAtPress(state.skeleton, state.selected, state.options, camera(state).ray(x, y, width, height))
                 downPart = press.part
@@ -71,7 +76,7 @@ class TouchGesture {
             var c = if (pinchDistance > 0 && d > 0) cam.pinch(pinchDistance, d) else cam
             pinchDistance = d
             val (mx, my) = pointerMid()
-            if (state.cameraOnly) c = c.pan(mx - pinchMidX, my - pinchMidY, height)
+            if (state.cameraOnly || state.dollMode) c = c.pan(mx - pinchMidX, my - pinchMidY, height)
             pinchMidX = mx
             pinchMidY = my
             return if (c == cam) state else state.withCamera(c)
@@ -102,7 +107,9 @@ class TouchGesture {
     private fun end(state: EditorState, id: Int, x: Double, y: Double, time: Long, released: Boolean): EditorState {
         if (pointers.remove(id) == null) return state
         var next = state
-        if (released && !moved && pointers.isEmpty() && mode != Mode.PINCH) {
+        if (released && !moved && pointers.isEmpty() && mode != Mode.PINCH && state.dollMode) {
+            downDoll?.let { next = next.switchDoll(it) }
+        } else if (released && !moved && pointers.isEmpty() && mode != Mode.PINCH) {
             val changes = downPart != null && downPart != state.selected
             val last = lastTap
             val rom = downRom

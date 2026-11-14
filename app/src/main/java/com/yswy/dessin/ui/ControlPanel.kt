@@ -1,5 +1,6 @@
 package com.yswy.dessin.ui
 
+import com.yswy.dessin.core.editor.MAX_DOLLS
 import com.yswy.dessin.core.editor.anchorChoice
 import com.yswy.dessin.core.skeleton.Anchor
 import com.yswy.dessin.core.editor.sexChoice
@@ -75,6 +76,9 @@ class PanelActions(
     val onHandShape: (HandShape) -> Unit,
     val onSex: (Sex) -> Unit,
     val onAnchor: (Anchor) -> Unit,
+    val onSwitchDoll: (Int) -> Unit,
+    val onAddDoll: () -> Unit,
+    val onRemoveDoll: () -> Unit,
 )
 
 /**
@@ -92,6 +96,13 @@ fun ControlPanel(
     bodyTools: @Composable () -> Unit,
 ) {
     Column(modifier.background(Palette.Panel).padding(horizontal = 16.dp, vertical = 10.dp)) {
+        if (state.dollMode) {
+            DollSection(state, actions)
+            Group("表示") { tools() }
+            Group("保存") { saveTools() }
+            Group("体型") { bodyTools() }
+            return@Column
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.weight(1f)) {
                 Text("選択中の部位", fontSize = 11.sp, color = Palette.Muted)
@@ -171,6 +182,27 @@ private fun SliderRow(slider: Slider, onChange: (SliderKind, Int) -> Unit) {
             },
         )
         Text("${slider.value}${slider.unit}", fontSize = 13.sp, color = Palette.Muted, textAlign = TextAlign.End, maxLines = 1, modifier = Modifier.width(44.dp))
+    }
+}
+
+/**
+ * 人形のモード(E13-02)のパネル。人形を選ぶ・足す・消す。消すのは操作中の人形で、確認は呼び出し側で行う
+ */
+@Composable
+private fun DollSection(state: EditorState, actions: PanelActions) {
+    val count = state.dolls.size
+    Text("人形", fontSize = 11.sp, color = Palette.Muted)
+    Text("人形${state.activeDoll + 1}(全${count}体)", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Palette.Ink)
+    Text(
+        "3D で人形をタップするか、下のボタンで選びます。人形は胸をドラッグして動かします(人形のボタンを戻してから)。",
+        fontSize = 12.sp, color = Palette.Muted, lineHeight = 18.sp, modifier = Modifier.padding(top = 4.dp),
+    )
+    Group("人形") {
+        repeat(count) { i -> ToolChip("人形${i + 1}", pressed = i == state.activeDoll) { actions.onSwitchDoll(i) } }
+    }
+    Group("操作") {
+        if (count < MAX_DOLLS) ToolChip("追加", onClick = actions.onAddDoll)
+        if (count > 1) ToolChip("削除", onClick = actions.onRemoveDoll)
     }
 }
 
