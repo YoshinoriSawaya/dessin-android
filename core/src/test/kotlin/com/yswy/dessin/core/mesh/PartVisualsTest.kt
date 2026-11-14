@@ -24,6 +24,17 @@ class PartVisualsTest {
     }
 
     @Test
+    fun 頭の球と顔の面は首の軸より前に置く() {
+        // E14-01: 頭が後ろ過ぎると感じる。首の付け根は背骨の線のまま、頭の形を首の上で前へずらす
+        val body = BodyParams()
+        val sphere = PartVisuals.placement("head", 0, body).position
+        val mask = PartVisuals.placement("head", 1, body).position
+        assertEquals(0.025, sphere.z, 1e-12)
+        assertVec(sphere, mask)
+        assertEquals(0.115, sphere.y, 1e-12)
+    }
+
+    @Test
     fun 線の本数はWeb版と同じ() {
         fun lines(id: String, i: Int) = PartVisuals.meshes(id)[i].lines.size
         assertEquals(3, lines("rib", 0)) // 前後の縦線2本と輪1本(もう1本の輪は脇腹へ。E05-02)

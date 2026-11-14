@@ -4,7 +4,7 @@
 v1.2.0 を使ってみる期間に出た要望(2026-11-14、利用者)。staging の下書き4件を振り分けた。
 
 ## タスク
-- [ ] [E14-01 頭を首に対して前へずらす](../tasks/E14-01-head-forward.md)
+- [x] [E14-01 頭を首に対して前へずらす](../tasks/E14-01-head-forward.md)
 - [ ] [E14-02 胸の上端を斜めに切る](../tasks/E14-02-chest-top-slope.md)
 - [ ] [E14-03 胸・脇腹・骨盤の長さ](../tasks/E14-03-torso-length.md)
 - [ ] [E14-04 骨盤が根のとき、骨盤で全体を動かす・回す](../tasks/E14-04-pelvis-root.md)

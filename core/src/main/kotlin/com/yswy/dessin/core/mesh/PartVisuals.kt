@@ -78,6 +78,8 @@ object PartVisuals {
     /** 乳房の大きさ 1 のときの半径 */
     private const val BREAST_R = 0.055
     private const val CHEST_ROWS = 16
+    /** 頭の形の、首の軸からの前へのずれ(頭の関節の空間。E14-01) */
+    private const val HEAD_FORWARD = 0.025
 
     private class Entry(val part: PartMesh, val position: Vec3, val rotation: Quat)
 
@@ -154,9 +156,10 @@ object PartVisuals {
                 marker(0.038)
             }
             "head" -> {
-                mk(Primitives.sphere(0.098, 24, 18), Vec3(0.0, 0.115, 0.0), edges = false, lines = headLines(0.1005))
+                // 頭の形は首の軸より前へ HEAD_FORWARD ずらす(頭蓋は首の真上より前へ張り出す。E14-01)
+                mk(Primitives.sphere(0.098, 24, 18), Vec3(0.0, 0.115, HEAD_FORWARD), edges = false, lines = headLines(0.1005))
                 val mask = Primitives.sphere(0.125, 32, 24, PI / 2 - 0.95, 1.9, PI / 2 - 0.7, 1.9).scaled(1.0, 1.25, 1.0)
-                mk(mask, Vec3(0.0, 0.115, 0.0), edges = true, kind = MeshKind.MASK, lines = maskLines())
+                mk(mask, Vec3(0.0, 0.115, HEAD_FORWARD), edges = true, kind = MeshKind.MASK, lines = maskLines())
             }
             "pelvis" -> {
                 mk(frustum(0.10, 0.12, 0.14, 0.68), Vec3(0.0, -0.07, 0.035), edges = true, lines = frustumLines(0.10, 0.12, 0.14, 0.68, listOf(0.0)))
