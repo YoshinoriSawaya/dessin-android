@@ -39,6 +39,8 @@ class DollRenderer : GLSurfaceView.Renderer {
         val options: DisplayOptions,
         /** 操作中でない人形(E13)。置いた部位だけを描く */
         val others: List<Skeleton> = emptyList(),
+        /** 操作中でない人形を淡く描くか(E13-05。EditorState.fadeOthers) */
+        val fadeOthers: Boolean = false,
     )
 
     @Volatile
@@ -98,7 +100,7 @@ class DollRenderer : GLSurfaceView.Renderer {
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
         viewProjection = (s.camera.projectionMatrix(aspect) * s.camera.viewMatrix()).toFloatArray()
         val plan = drawPlan(s.skeleton, s.selected, s.options)
-        val otherPlans = s.others.map { it to otherDollPlan(it, s.options).meshes }
+        val otherPlans = s.others.map { it to otherDollPlan(it, s.options, s.fadeOthers).meshes }
         drawShadowMap(s, listOf(s.skeleton to plan.meshes.filter { it.style != MeshStyle.GHOST }) + otherPlans)
 
         if (s.options.grid) {
@@ -111,10 +113,10 @@ class DollRenderer : GLSurfaceView.Renderer {
             meshes.forEach { d ->
                 val model = meshWorldMatrix(skeleton, d.partId, d.meshIndex).toFloatArray()
                 val p = gpuOf(d.partId)[d.meshIndex]
-                drawLit(model, d.style)
+                drawLit(model, d.style, d.faded)
                 p.body.draw()
-                if (d.edges) drawFlat(model, EDGE) { p.edges?.draw() }
-                if (d.lines) drawFlat(model, LINE) { p.lines.forEach { it.draw() } }
+                if (d.edges) drawFlat(model, if (d.faded) EDGE_FADED else EDGE) { p.edges?.draw() }
+                if (d.lines) drawFlat(model, if (d.faded) LINE_FADED else LINE) { p.lines.forEach { it.draw() } }
             }
         }
 
@@ -179,7 +181,8 @@ class DollRenderer : GLSurfaceView.Renderer {
         GLES30.glEnable(GLES30.GL_CULL_FACE)
     }
 
-    private fun drawLit(model: FloatArray, style: MeshStyle) {
+    /** faded なら紙の色に寄せて淡く描く(不透明のまま。E13-05) */
+    private fun drawLit(model: FloatArray, style: MeshStyle, faded: Boolean = false) {
         lit.use()
         // 顔の面だけは両面(Web版の DoubleSide)
         if (style == MeshStyle.MASK) GLES30.glDisable(GLES30.GL_CULL_FACE) else GLES30.glEnable(GLES30.GL_CULL_FACE)
@@ -192,8 +195,8 @@ class DollRenderer : GLSurfaceView.Renderer {
             MeshStyle.MASK -> Triple(MASK, BLACK, 1f)
             MeshStyle.GHOST -> Triple(GHOST, BLACK, 0.26f)
         }
-        GLES30.glUniform3fv(lit.uniform("uColor"), 1, color, 0)
-        GLES30.glUniform3fv(lit.uniform("uEmissive"), 1, emissive, 0)
+        GLES30.glUniform3fv(lit.uniform("uColor"), 1, if (faded) scaled(color, FADE_KEEP) else color, 0)
+        GLES30.glUniform3fv(lit.uniform("uEmissive"), 1, if (faded) scaled(PAPER, 1 - FADE_KEEP) else emissive, 0)
         GLES30.glUniform1f(lit.uniform("uOpacity"), opacity)
         // 影(E11)。下描きはテクスチャの1番に置く
         GLES30.glUniformMatrix4fv(lit.uniform("uLightViewProjection"), 1, false, lightViewProjection, 0)
@@ -238,6 +241,10 @@ class DollRenderer : GLSurfaceView.Renderer {
         val BLACK = rgb(0x000000)
         val EDGE = rgba(0x58534a)
         val LINE = rgba(0xb02a2a)
+        /** 淡く描くとき(E13-05)に残す元の色の割合。残りは紙の色 */
+        const val FADE_KEEP = 0.35f
+        val EDGE_FADED = mix(EDGE, PAPER, FADE_KEEP)
+        val LINE_FADED = mix(LINE, PAPER, FADE_KEEP)
         val GRID = rgba(0xcdcac1)
         val GRID_CENTER = rgba(0xb7b3a8)
         val ROM = rgba(0x1f9d75, 0.34f)
@@ -247,5 +254,8 @@ class DollRenderer : GLSurfaceView.Renderer {
 
         fun rgb(c: Int) = floatArrayOf(((c shr 16) and 0xff) / 255f, ((c shr 8) and 0xff) / 255f, (c and 0xff) / 255f)
         fun rgba(c: Int, a: Float = 1f) = rgb(c) + a
+        fun scaled(c: FloatArray, k: Float) = FloatArray(c.size) { c[it] * k }
+        /** 色 rgba の keep の割合を残し、残りを紙の色 paper(rgb)にする。不透明度はそのまま */
+        fun mix(c: FloatArray, paper: FloatArray, keep: Float) = FloatArray(4) { if (it < 3) c[it] * keep + paper[it] * (1 - keep) else c[3] }
     }
 }

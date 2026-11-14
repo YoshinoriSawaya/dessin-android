@@ -5,13 +5,14 @@ import com.yswy.dessin.core.mesh.PartVisuals
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.Skeleton
 
-/** 表示の切替(Web版の「ガイド」「正中線」「関節の玉」「格子」と、体に落ちる影。E11) */
+/** 表示の切替(Web版の「ガイド」「正中線」「関節の玉」「格子」と、体に落ちる影(E11)、人形のモード中にほかの人形を淡くするか(E13-05)) */
 data class DisplayOptions(
     val guides: Boolean = true,
     val lines: Boolean = true,
     val markers: Boolean = true,
     val grid: Boolean = true,
     val shadows: Boolean = true,
+    val fadeOthers: Boolean = true,
 )
 
 /** メッシュの描き方(Web版の材質) */
@@ -28,8 +29,8 @@ enum class MeshStyle {
     GHOST,
 }
 
-/** メッシュ1つの描き方。edges は輪郭線、lines は正中線などの管を描くか */
-data class MeshDraw(val partId: String, val meshIndex: Int, val style: MeshStyle, val edges: Boolean, val lines: Boolean)
+/** メッシュ1つの描き方。edges は輪郭線、lines は正中線などの管を描くか。faded は淡く描くか(操作中でない人形。E13-05) */
+data class MeshDraw(val partId: String, val meshIndex: Int, val style: MeshStyle, val edges: Boolean, val lines: Boolean, val faded: Boolean = false)
 
 /**
  * 1回の描画で描くもの。guidePart は可動域と玉を出す部位(出さなければ null)。
@@ -68,7 +69,9 @@ fun drawPlan(skeleton: Skeleton, selected: String, options: DisplayOptions): Dra
 
 /**
  * 操作中でない人形の描き方(E13)。置いた部位だけを、選択の色・半透明の影(置く前の部位)・可動域なしで描く。
- * 関節の玉・正中線の切り替えには従う
+ * 関節の玉・正中線の切り替えには従う。faded なら淡く描く(E13-05。EditorState.fadeOthers)
  */
-fun otherDollPlan(skeleton: Skeleton, options: DisplayOptions): DrawPlan =
-    drawPlan(skeleton, selected = "", options = options.copy(guides = false))
+fun otherDollPlan(skeleton: Skeleton, options: DisplayOptions, faded: Boolean = false): DrawPlan {
+    val plan = drawPlan(skeleton, selected = "", options = options.copy(guides = false))
+    return if (faded) plan.copy(meshes = plan.meshes.map { it.copy(faded = true) }) else plan
+}

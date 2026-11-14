@@ -52,6 +52,7 @@ import com.yswy.dessin.core.editor.applySlider
 import com.yswy.dessin.core.editor.fitView
 import com.yswy.dessin.core.editor.isOn
 import com.yswy.dessin.core.editor.loadBody
+import com.yswy.dessin.core.editor.fadeOthers
 import com.yswy.dessin.core.editor.loadPose
 import com.yswy.dessin.core.editor.preset
 import com.yswy.dessin.core.editor.toggle
@@ -144,7 +145,7 @@ fun DessinScreen(start: EditorState) {
                 },
                 update = { view ->
                     view.pointerListener = pointers
-                    view.setScene(DollRenderer.Scene(state.skeleton, state.camera ?: OrbitCamera(), state.selected, state.options, state.others))
+                    view.setScene(DollRenderer.Scene(state.skeleton, state.camera ?: OrbitCamera(), state.selected, state.options, state.others, state.fadeOthers))
                 },
             )
             if (hintVisible && tallEnough) {
@@ -273,4 +274,5 @@ private fun Display.label() = when (this) {
     Display.MARKERS -> "関節の玉"
     Display.GRID -> "格子"
     Display.SHADOWS -> "影"
+    Display.FADE_OTHERS -> "ほかを淡く"
 }
