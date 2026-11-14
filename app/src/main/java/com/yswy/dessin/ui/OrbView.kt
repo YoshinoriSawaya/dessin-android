@@ -46,9 +46,10 @@ private val RingColors = mapOf(
  * ドラッグで回す(中央は傾け、外周はひねる)。計算は :core の OrbGesture・orbPicture。
  */
 @Composable
-fun OrbView(state: EditorState, onRotate: (Quat) -> Unit, modifier: Modifier = Modifier) {
+fun OrbView(state: EditorState, onRotate: (Quat) -> Unit, modifier: Modifier = Modifier, onEnd: () -> Unit = {}) {
     val current by rememberUpdatedState(state)
     val rotate by rememberUpdatedState(onRotate)
+    val end by rememberUpdatedState(onEnd)
     val gesture = remember { OrbGesture() }
     val textMeasurer = rememberTextMeasurer()
     val camera = state.camera ?: OrbitCamera()
@@ -78,6 +79,8 @@ fun OrbView(state: EditorState, onRotate: (Quat) -> Unit, modifier: Modifier = M
                             }
                         }
                         gesture.up()
+                        // 1回のドラッグを Undo の1段にまとめる(E15-01)
+                        end()
                     }
                 },
         ) {
