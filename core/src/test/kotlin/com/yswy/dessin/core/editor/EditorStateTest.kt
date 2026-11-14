@@ -100,6 +100,7 @@ class EditorStateTest {
                 listOf("handL", "handR", "thighL", "thighR"),
                 listOf("shinL", "shinR"),
                 listOf("footL", "footR"),
+                listOf("toeL", "toeR"), // E08-03
             ),
             groups,
         )
