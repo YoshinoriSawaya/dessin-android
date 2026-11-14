@@ -102,7 +102,21 @@ data class Skeleton(
     private val pelvisAnchored: Boolean get() = anchor == Anchor.PELVIS && isPlaced(PELVIS)
 
     /** 骨盤が根のときに、根との間にある部位(脇腹)。胸自身は含めない */
-    private fun isAnchorSide(id: String): Boolean = pelvisAnchored && id in BETWEEN_ROOT_AND_PELVIS
+    fun isAnchorSide(id: String): Boolean = pelvisAnchored && id in BETWEEN_ROOT_AND_PELVIS
+
+    /**
+     * 骨盤が根で、id が骨盤(E14-04)。胸が根のときの胸と同じく、操作で人形全体を動かす・回す
+     * (ドラッグで位置、回転オーブ・傾きのスライダーで骨盤の関節を中心に回す)
+     */
+    fun isAnchorRoot(id: String): Boolean = pelvisAnchored && id == PELVIS
+
+    /** 人形全体をワールドの点 center を中心に rot だけ回す。部位の状態(体の形)は変えない */
+    fun rotatedAbout(center: Vec3, rot: Quat): Skeleton = copy(
+        root = root.copy(position = center + rot.rotate(root.position - center), rotation = (rot * root.rotation).normalized()),
+    )
+
+    /** 人形全体を delta だけ動かす */
+    fun movedBy(delta: Vec3): Skeleton = copy(root = root.copy(position = root.position + delta))
 
     /** 骨盤のワールドの位置と向きが before と同じになるよう、胸の置き方を回して動かす */
     private fun keepingPelvisOf(before: Skeleton): Skeleton {
@@ -193,6 +207,8 @@ data class Skeleton(
     fun orb(id: String, rotInWorld: Quat): Skeleton {
         val spec = PartSpecs[id]
         if (spec.isRoot) return withRoot(root.copy(rotation = orbRotateRoot(root.rotation, rotInWorld)))
+        // 骨盤が根のときの骨盤は、骨盤の関節を中心に全体を回す(E14-04)
+        if (isAnchorRoot(id)) return rotatedAbout(world.getValue(id).position, rotInWorld)
         // 骨盤が根のときの脇腹は、上半身をその向きに回す(脇腹には逆の回転を加えると、補正で胸が回る)
         val rot = if (isAnchorSide(id)) rotInWorld.inverse() else rotInWorld
         val pq = parentOf(id).rotation

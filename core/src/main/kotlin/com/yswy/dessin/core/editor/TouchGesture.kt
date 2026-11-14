@@ -89,6 +89,10 @@ class TouchGesture {
                 if (PartSpecs[state.selected].isRoot) {
                     val pos = skeleton.root.position
                     state.copy(skeleton = skeleton.withRoot(skeleton.root.copy(position = pos + cam.screenDelta(pos, dx, dy, height))))
+                } else if (skeleton.isAnchorRoot(state.selected)) {
+                    // 骨盤が根のときの骨盤は、胸と同じく全体を動かす。骨盤の関節が指についてくる(E14-04)
+                    val pos = skeleton.guideCenter(state.selected)
+                    state.copy(skeleton = skeleton.movedBy(cam.screenDelta(pos, dx, dy, height)))
                 } else {
                     state.copy(skeleton = skeleton.drag(state.selected, cam.ray(x, y, width, height)))
                 }

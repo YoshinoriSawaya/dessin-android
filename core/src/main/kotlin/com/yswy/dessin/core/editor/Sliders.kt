@@ -39,6 +39,16 @@ private fun baseId(id: String) = if (PartSpecs[id].side != null) id.dropLast(1) 
 private fun EditorState.limbLength(body: BodyParams): Slider =
     Slider(SliderKind.LIMB_LENGTH, "長さ(左右)", 70, 130, pct(lengthScale(PartSpecs[selected], body)), "%")
 
+/** 根の傾きの3本(前後の傾き・ひねり・横の傾き)。rotation をオイラー角(YXZ)に分けた値 */
+private fun tiltSliders(rotation: Quat): List<Slider> {
+    val e = rotation.toEulerYXZ()
+    return listOf(
+        Slider(SliderKind.RIB_TILT, "前後の傾き", -90, 90, deg(e.x), "°"),
+        Slider(SliderKind.RIB_TWIST, "ひねり", -180, 180, deg(e.y), "°"),
+        Slider(SliderKind.RIB_SIDE_TILT, "横の傾き", -90, 90, deg(e.z), "°"),
+    )
+}
+
 /** 選択中の部位で出すスライダー(Web版の syncUI) */
 val EditorState.sliders: List<Slider>
     get() {
@@ -47,17 +57,22 @@ val EditorState.sliders: List<Slider>
         if (spec.isRoot) {
             val root = skeleton.root
             val e = root.rotation.toEulerYXZ()
-            return listOf(
-                Slider(SliderKind.RIB_SIZE, "大きさ", 30, 160, (root.scale * 100).roundToInt(), "%"),
-                Slider(SliderKind.RIB_TILT, "前後の傾き", -90, 90, deg(e.x), "°"),
-                Slider(SliderKind.RIB_TWIST, "ひねり", -180, 180, deg(e.y), "°"),
-                Slider(SliderKind.RIB_SIDE_TILT, "横の傾き", -90, 90, deg(e.z), "°"),
-                Slider(SliderKind.HEIGHT, "身長", 70, 130, pct(body.height), "%"),
-                Slider(SliderKind.BREAST_SIZE, "乳房", 0, 100, pct(body.breastSize), "%"),
-            )
+            return listOf(Slider(SliderKind.RIB_SIZE, "大きさ", 30, 160, (root.scale * 100).roundToInt(), "%")) +
+                tiltSliders(root.rotation) +
+                listOf(
+                    Slider(SliderKind.HEIGHT, "身長", 70, 130, pct(body.height), "%"),
+                    Slider(SliderKind.BREAST_SIZE, "乳房", 0, 100, pct(body.breastSize), "%"),
+                )
         }
         return buildList {
-            add(Slider(SliderKind.ROLL, "ひねり", deg(spec.roll.min), deg(spec.roll.max), deg(skeleton.state(selected).roll), "°"))
+            when {
+                // 骨盤が根のときの骨盤は、胸と同じ傾きの3本(骨盤のワールドの向き)。自分のひねりの行は出さない(E14-04)
+                skeleton.isAnchorRoot(selected) -> addAll(tiltSliders(skeleton.worldTransforms().getValue(selected).rotation))
+                // 骨盤が根のときの脇腹は、動く側(上半身)が胸が根のときの骨盤と同じ向きに回るよう、値の符号を逆にして見せる(E14-04)
+                skeleton.isAnchorSide(selected) ->
+                    add(Slider(SliderKind.ROLL, "ひねり", -deg(spec.roll.max), -deg(spec.roll.min), -deg(skeleton.state(selected).roll), "°"))
+                else -> add(Slider(SliderKind.ROLL, "ひねり", deg(spec.roll.min), deg(spec.roll.max), deg(skeleton.state(selected).roll), "°"))
+            }
             when (spec.adjust) {
                 Adjust.HEAD_SIZE -> add(Slider(SliderKind.HEAD_SIZE, "大きさ", 60, 140, (body.headSize * 100).roundToInt(), "%"))
                 Adjust.SHOULDER_WIDTH -> add(Slider(SliderKind.SHOULDER_WIDTH, "肩幅(左右)", 40, 150, (body.shoulderWidth * 100).roundToInt(), "%"))
@@ -89,13 +104,24 @@ fun EditorState.applySlider(kind: SliderKind, value: Int): EditorState {
     if (sliders.none { it.kind == kind }) return this
     val s = skeleton
     val root = s.root
-    fun rotate(change: (Vec3) -> Vec3) = copy(skeleton = s.withRoot(root.copy(rotation = Quat.fromEulerYXZ(change(root.rotation.toEulerYXZ())))))
+    fun rotate(change: (Vec3) -> Vec3): EditorState {
+        if (s.isAnchorRoot(selected)) {
+            // 骨盤が根のときの骨盤は、骨盤のワールドの向きを差し替え、骨盤の関節を中心に全体を回す(E14-04)
+            val j = s.worldTransforms().getValue(selected)
+            val target = Quat.fromEulerYXZ(change(j.rotation.toEulerYXZ()))
+            return copy(skeleton = s.rotatedAbout(j.position, (target * j.rotation.inverse()).normalized()))
+        }
+        return copy(skeleton = s.withRoot(root.copy(rotation = Quat.fromEulerYXZ(change(root.rotation.toEulerYXZ())))))
+    }
     return when (kind) {
         SliderKind.RIB_SIZE -> copy(skeleton = s.withRoot(root.copy(scale = value / 100.0)))
         SliderKind.RIB_TILT -> rotate { Vec3(value * D2R, it.y, it.z) }
         SliderKind.RIB_TWIST -> rotate { Vec3(it.x, value * D2R, it.z) }
         SliderKind.RIB_SIDE_TILT -> rotate { Vec3(it.x, it.y, value * D2R) }
-        SliderKind.ROLL -> copy(skeleton = s.withState(selected, s.state(selected).copy(roll = value * D2R)))
+        SliderKind.ROLL -> {
+            val sign = if (s.isAnchorSide(selected)) -1 else 1
+            copy(skeleton = s.withState(selected, s.state(selected).copy(roll = sign * value * D2R)))
+        }
         SliderKind.HEAD_SIZE -> copy(skeleton = s.withBody(s.body.copy(headSize = value / 100.0)))
         SliderKind.SHOULDER_WIDTH -> copy(skeleton = s.withBody(s.body.copy(shoulderWidth = value / 100.0)))
         SliderKind.PELVIS_WIDTH -> copy(skeleton = s.withBody(s.body.copy(pelvisWidth = value / 100.0)))
