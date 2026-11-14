@@ -1,5 +1,6 @@
 package com.yswy.dessin.core.editor
 
+import com.yswy.dessin.core.skeleton.Anchor
 import com.yswy.dessin.core.camera.OrbitCamera
 import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.pose.BodyCodec
@@ -17,6 +18,7 @@ import com.yswy.dessin.core.render.DisplayOptions
  * options <ガイド> <正中線> <関節の玉> <格子>   ← 0 か 1
  * panel <0|1>
  * bodytype <BodyCodec の1行>   ← E07-02。無ければポーズの体型のまま
+ * anchor <rib|pelvis>          ← E10-01。無ければ胸
  * pose
  * <PoseCodec の文字列>
  * ```
@@ -32,6 +34,7 @@ object EditorStateCodec {
         appendLine("options ${bit(o.guides)} ${bit(o.lines)} ${bit(o.markers)} ${bit(o.grid)}")
         appendLine("panel ${bit(state.panelOpen)}")
         appendLine("bodytype ${BodyCodec.encodeLine(state.skeleton.body)}")
+        appendLine("anchor ${if (state.skeleton.anchor == Anchor.PELVIS) "pelvis" else "rib"}")
         appendLine("pose")
         append(PoseCodec.encode(state.skeleton))
     }
@@ -62,6 +65,11 @@ object EditorStateCodec {
                     state.copy(options = DisplayOptions(b[0], b[1], b[2], b[3]))
                 }
                 "panel" -> state.copy(panelOpen = flag(t.getOrNull(1) ?: return null) ?: return null)
+                "anchor" -> when (t.getOrNull(1)) {
+                    "pelvis" -> state.copy(skeleton = state.skeleton.withAnchor(Anchor.PELVIS))
+                    "rib" -> state.copy(skeleton = state.skeleton.withAnchor(Anchor.CHEST))
+                    else -> return null
+                }
                 "bodytype" -> {
                     val body = BodyCodec.decodeLine(line.removePrefix("bodytype")) ?: return null
                     state.copy(skeleton = state.skeleton.withBody(body))

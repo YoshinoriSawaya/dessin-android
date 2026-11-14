@@ -1,5 +1,7 @@
 package com.yswy.dessin.ui
 
+import com.yswy.dessin.core.editor.anchorChoice
+import com.yswy.dessin.core.skeleton.Anchor
 import com.yswy.dessin.core.editor.sexChoice
 import com.yswy.dessin.core.skeleton.Sex
 import com.yswy.dessin.core.editor.handShapeChoice
@@ -72,6 +74,7 @@ class PanelActions(
     val onOrb: (Quat) -> Unit,
     val onHandShape: (HandShape) -> Unit,
     val onSex: (Sex) -> Unit,
+    val onAnchor: (Anchor) -> Unit,
 )
 
 /**
@@ -118,6 +121,12 @@ fun ControlPanel(
             state.sexChoice?.let { current ->
                 Group("性別") {
                     Sex.entries.forEach { sex -> ToolChip(sex.label, pressed = current == sex) { actions.onSex(sex) } }
+                }
+            }
+            // 脇腹を選んでいて骨盤を置いているときだけ、根(胸・骨盤)を切り替える(E10-01)
+            state.anchorChoice?.let { current ->
+                Group("根") {
+                    Anchor.entries.forEach { a -> ToolChip(a.label, pressed = current == a) { actions.onAnchor(a) } }
                 }
             }
             Group("部位") {

@@ -1,5 +1,6 @@
 package com.yswy.dessin.ui
 
+import com.yswy.dessin.core.editor.setAnchor
 import com.yswy.dessin.core.editor.setSex
 import com.yswy.dessin.core.editor.setHandShape
 import android.util.Log
@@ -93,6 +94,7 @@ fun DessinScreen(start: EditorState) {
         onOrb = { q -> state = state.applyOrb(q) },
         onHandShape = { shape -> state = state.setHandShape(shape) },
         onSex = { sex -> state = state.setSex(sex) },
+        onAnchor = { anchor -> state = state.setAnchor(anchor) },
     )
 
     // 指の操作の途中の状態。画面にひとつ
