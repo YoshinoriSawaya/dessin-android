@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import com.yswy.dessin.core.pose.BodyLibrary
+import com.yswy.dessin.core.pose.DefaultBody
 import com.yswy.dessin.core.pose.LibraryResult
 import com.yswy.dessin.core.pose.NamedLibrary
 import com.yswy.dessin.core.pose.SavedItem
@@ -20,7 +21,8 @@ enum class SaveKind(val label: String) { POSE("場面"), BODY("体型") }
 sealed interface PoseDialog {
     val kind: SaveKind
     data class Save(override val kind: SaveKind, val suggestedName: String) : PoseDialog
-    data class List(override val kind: SaveKind, val items: kotlin.collections.List<SavedPoseSummary>) : PoseDialog
+    /** defaultId は既定にした体型の id(体型の一覧だけ。E07-04) */
+    data class List(override val kind: SaveKind, val items: kotlin.collections.List<SavedPoseSummary>, val defaultId: String? = null) : PoseDialog
 }
 
 /**
@@ -75,6 +77,51 @@ class Shelf<T>(private val context: Context, private val library: NamedLibrary<T
             Shelf(context, SceneLibrary(FilePoseStore(File(context.filesDir, "poses"))), SaveKind.POSE.label)
 
         fun bodies(context: Context): Shelf<BodyParams> =
-            Shelf(context, BodyLibrary(FilePoseStore(File(context.filesDir, "bodies"), ".body")), SaveKind.BODY.label)
+            Shelf(context, bodyLibrary(context), SaveKind.BODY.label)
+
+        internal fun bodyLibrary(context: Context) = BodyLibrary(FilePoseStore(File(context.filesDir, "bodies"), ".body"))
+    }
+}
+
+/**
+ * 既定の体型(E07-04)。選んだ体型の id は files/settings の default-body.setting に置く。
+ * 失敗したら理由をログに残し、利用者には短い文言だけを出す。読めなければ固定の値で続ける。
+ */
+class DefaultBodyShelf(private val context: Context) {
+    private val defaults = DefaultBody(FilePoseStore(File(context.filesDir, "settings"), ".setting"), Shelf.bodyLibrary(context))
+
+    /** 既定にした体型の id。選んでいないか読めなければ null */
+    fun id(): String? = when (val r = defaults.id()) {
+        is LibraryResult.Ok -> r.value
+        is LibraryResult.Error -> fail("既定の体型を読めませんでした", r.reason)
+    }
+
+    /** 既定の体型。選んでいないか読めなければ固定の値 */
+    fun body(): BodyParams = when (val r = defaults.body()) {
+        is LibraryResult.Ok -> r.value
+        is LibraryResult.Error -> fail("既定の体型を読めませんでした", r.reason) ?: BodyParams()
+    }
+
+    fun set(item: SavedPoseSummary) = report(defaults.set(item.id), "「${item.name}」を既定にしました", "既定にできませんでした")
+
+    fun clear() = report(defaults.clear(), "既定を外しました", "既定を外せませんでした")
+
+    /** 体型を消したあとに呼ぶ。消したのが既定なら既定を外す */
+    fun forget(deletedId: String) {
+        val r = defaults.forget(deletedId)
+        if (r is LibraryResult.Error) fail<Unit>("既定を外せませんでした", r.reason)
+    }
+
+    private fun report(r: LibraryResult<Unit>, done: String, failed: String) {
+        when (r) {
+            is LibraryResult.Ok -> Toast.makeText(context, done, Toast.LENGTH_SHORT).show()
+            is LibraryResult.Error -> fail<Unit>(failed, r.reason)
+        }
+    }
+
+    private fun <R> fail(message: String, reason: String): R? {
+        Log.w("DefaultBodyShelf", "$message: $reason")
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        return null
     }
 }

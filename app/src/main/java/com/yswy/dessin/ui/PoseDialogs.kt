@@ -54,10 +54,20 @@ private val DateFormat = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm")
 
 /**
  * 保存した場面・体型の一覧。読み込み・削除(削除は確認してから)。label は「場面」か「体型」。
- * ボタンの色: 主な操作(読み込む・確認の削除)はアクセント、閉じる・キャンセルは墨、一覧の削除は淡い色
+ * onToggleDefault を渡すと(体型の一覧。E07-04)、各行に「既定にする」を置き、defaultId の行に「既定」の印を付ける。
+ * 既定の行のボタンは「既定を外す」になる。
+ * ボタンの色: 主な操作(読み込む・確認の削除)はアクセント、閉じる・キャンセルは墨、一覧の削除と既定の切り替えは淡い色
  */
 @Composable
-fun PoseListDialog(label: String, items: List<SavedPoseSummary>, onLoad: (String) -> Unit, onDelete: (String) -> Unit, onDismiss: () -> Unit) {
+fun PoseListDialog(
+    label: String,
+    items: List<SavedPoseSummary>,
+    onLoad: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onDismiss: () -> Unit,
+    defaultId: String? = null,
+    onToggleDefault: ((SavedPoseSummary) -> Unit)? = null,
+) {
     var deleting by remember { mutableStateOf<SavedPoseSummary?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -68,17 +78,34 @@ fun PoseListDialog(label: String, items: List<SavedPoseSummary>, onLoad: (String
             } else {
                 LazyColumn(Modifier.heightIn(max = 360.dp)) {
                     items(items, key = { it.id }) { item ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(item.name, fontSize = 15.sp, color = Palette.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        val info = @Composable {
+                            Text(item.name, fontSize = 15.sp, color = Palette.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
                                     DateFormat.format(Instant.ofEpochMilli(item.savedAt).atZone(ZoneId.systemDefault())),
-                                    fontSize = 12.sp, color = Palette.Muted,
+                                    fontSize = 12.sp, color = Palette.Muted, maxLines = 1,
                                 )
+                                if (item.id == defaultId) Text("既定", fontSize = 12.sp, color = Palette.Accent, maxLines = 1)
                             }
-                            Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-                                TextButton(onClick = { onLoad(item.id) }) { Text("読み込む") }
-                                TextButton(onClick = { deleting = item }) { Text("削除", color = Palette.Muted) }
+                        }
+                        val load = @Composable { TextButton(onClick = { onLoad(item.id) }) { Text("読み込む") } }
+                        val delete = @Composable { TextButton(onClick = { deleting = item }) { Text("削除", color = Palette.Muted) } }
+                        if (onToggleDefault == null) {
+                            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) { info() }
+                                Row { load(); delete() }
+                            }
+                        } else {
+                            // ボタンが3つになるので、名前と日時の下の行に並べる
+                            Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                                info()
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                    load()
+                                    TextButton(onClick = { onToggleDefault(item) }) {
+                                        Text(if (item.id == defaultId) "既定を外す" else "既定にする", color = Palette.Muted)
+                                    }
+                                    delete()
+                                }
                             }
                         }
                         HorizontalDivider(color = Palette.Line)

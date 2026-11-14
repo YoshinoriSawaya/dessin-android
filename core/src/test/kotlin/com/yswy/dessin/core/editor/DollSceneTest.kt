@@ -113,4 +113,14 @@ class DollSceneTest {
         assertEquals(xs.sorted(), xs)
         assertEquals(Vec3(xs[2], NaturalPose.initial.root.position.y, NaturalPose.initial.root.position.z), three.dolls[2].root.position)
     }
+
+    @Test
+    fun 人形を足すときに体型を渡すと_その体型で置く() {
+        // E07-04: 既定の体型は次に足す人形から効く。今いる人形の体型は変えない
+        val body = com.yswy.dessin.core.skeleton.BodyParams(headSize = 1.2, thighLength = 1.1)
+        val s = one.addDoll(body)
+        assertEquals(body, s.dolls[1].body)
+        assertEquals(one.skeleton, s.dolls[0])
+        assertEquals(two.dolls[1].withBody(body), s.dolls[1])
+    }
 }
