@@ -45,9 +45,9 @@ class DrawPlanTest {
     @Test
     fun 全部置くと全メッシュを描く() {
         val plan = drawPlan(all, "rib", DisplayOptions())
-        // 手は今の形(既定はパー)のメッシュだけを描く(E08-02)
+        // 手は今の形(既定はパー)、乳房・性器は体型に合うものだけを描く(E08-02・E08-04)
         assertEquals(
-            PartSpecs.all.sumOf { s -> PartVisuals.meshes(s.id).count { it.handShape == null || it.handShape == all.handShape(s.id) } },
+            PartSpecs.all.sumOf { s -> PartVisuals.meshes(s.id).indices.count { PartVisuals.isShown(s.id, it, all) } },
             plan.meshes.size,
         )
         assertTrue(plan.meshes.none { it.style == MeshStyle.GHOST })

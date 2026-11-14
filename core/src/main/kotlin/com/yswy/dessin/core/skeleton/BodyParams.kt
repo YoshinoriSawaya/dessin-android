@@ -20,6 +20,8 @@ import kotlin.math.sign
  * @property shinLength すねの長さ(倍率、左右共通)。E07-02
  * @property height 身長(人形全体の倍率。胸の大きさと掛け合わさる)。E07-02
  * @property kneeRoll ひざの転がりのずれ。すねの回転の中心の、ひざの関節からの高さ(E06-02・E07-02)
+ * @property breastSize 乳房の大きさ(0 で平ら、1 で最大)。E08-04
+ * @property sex 性別(性器の形)。E08-04
  */
 data class BodyParams(
     val headSize: Double = 1.0,
@@ -34,6 +36,8 @@ data class BodyParams(
     val shinLength: Double = 1.0,
     val height: Double = 1.0,
     val kneeRoll: Double = 0.03,
+    val breastSize: Double = 0.0,
+    val sex: Sex = Sex.MALE,
 ) {
     /** 範囲に収めた値 */
     fun clamped() = BodyParams(
@@ -49,6 +53,8 @@ data class BodyParams(
         shinLength.coerceIn(LIMB_LENGTH_RANGE),
         height.coerceIn(HEIGHT_RANGE),
         kneeRoll.coerceIn(KNEE_ROLL_RANGE),
+        breastSize.coerceIn(BREAST_SIZE_RANGE),
+        sex,
     )
 
     companion object {
@@ -61,7 +67,14 @@ data class BodyParams(
         val LIMB_LENGTH_RANGE = 0.7..1.3
         val HEIGHT_RANGE = 0.7..1.3
         val KNEE_ROLL_RANGE = 0.0..0.06
+        val BREAST_SIZE_RANGE = 0.0..1.0
     }
+}
+
+/** 性別(E08-04)。性器の形を決める。code は体型の文字列での値 */
+enum class Sex(val code: Int, val label: String) {
+    MALE(0, "男"),
+    FEMALE(1, "女"),
 }
 
 /** 骨盤の外縁の x(横幅が1倍のとき) */

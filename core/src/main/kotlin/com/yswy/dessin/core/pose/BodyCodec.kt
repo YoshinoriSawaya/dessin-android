@@ -1,6 +1,7 @@
 package com.yswy.dessin.core.pose
 
 import com.yswy.dessin.core.skeleton.BodyParams
+import com.yswy.dessin.core.skeleton.Sex
 
 /**
  * 体型(BodyParams)と文字列の変換(E07-02)。1行に「名前=値」を空白で区切って並べる。
@@ -26,6 +27,9 @@ object BodyCodec {
         "shinLength" to BodyParams::shinLength,
         "height" to BodyParams::height,
         "kneeRoll" to BodyParams::kneeRoll,
+        "breastSize" to BodyParams::breastSize,
+        // 性別は 0(男)か 1(女)の数で書く(E08-04)
+        "sex" to { b: BodyParams -> b.sex.code.toDouble() },
     )
 
     fun encodeLine(body: BodyParams): String = fields.joinToString(" ") { (name, get) -> "$name=${get(body)}" }
@@ -53,6 +57,8 @@ object BodyCodec {
             shinLength = v("shinLength", d.shinLength),
             height = v("height", d.height),
             kneeRoll = v("kneeRoll", d.kneeRoll),
+            breastSize = v("breastSize", d.breastSize),
+            sex = if (v("sex", d.sex.code.toDouble()) >= 0.5) Sex.FEMALE else Sex.MALE,
         ).clamped()
     }
 }
