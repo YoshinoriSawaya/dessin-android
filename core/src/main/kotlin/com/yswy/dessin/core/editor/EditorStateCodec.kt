@@ -15,7 +15,7 @@ import com.yswy.dessin.core.render.DisplayOptions
  * dessin-editor 1
  * selected <部位id>
  * camera <注視点xyz> <yaw> <pitch> <距離>   ← 視点が決まっていなければ無い
- * options <ガイド> <正中線> <関節の玉> <格子>   ← 0 か 1
+ * options <ガイド> <正中線> <関節の玉> <格子> <影>   ← 0 か 1。影(E11)が無い古い状態は影あり
  * panel <0|1>
  * bodytype <BodyCodec の1行>   ← E07-02。無ければポーズの体型のまま
  * anchor <rib|pelvis>          ← E10-01。無ければ胸
@@ -31,7 +31,7 @@ object EditorStateCodec {
         appendLine("selected ${state.selected}")
         state.camera?.let { c -> appendLine("camera ${c.target.x} ${c.target.y} ${c.target.z} ${c.yaw} ${c.pitch} ${c.distance}") }
         val o = state.options
-        appendLine("options ${bit(o.guides)} ${bit(o.lines)} ${bit(o.markers)} ${bit(o.grid)}")
+        appendLine("options ${bit(o.guides)} ${bit(o.lines)} ${bit(o.markers)} ${bit(o.grid)} ${bit(o.shadows)}")
         appendLine("panel ${bit(state.panelOpen)}")
         appendLine("bodytype ${BodyCodec.encodeLine(state.skeleton.body)}")
         appendLine("anchor ${if (state.skeleton.anchor == Anchor.PELVIS) "pelvis" else "rib"}")
@@ -61,8 +61,8 @@ object EditorStateCodec {
                 }
                 "options" -> {
                     val b = t.drop(1).map { flag(it) ?: return null }
-                    if (b.size != 4) return null
-                    state.copy(options = DisplayOptions(b[0], b[1], b[2], b[3]))
+                    if (b.size != 4 && b.size != 5) return null
+                    state.copy(options = DisplayOptions(b[0], b[1], b[2], b[3], b.getOrElse(4) { true }))
                 }
                 "panel" -> state.copy(panelOpen = flag(t.getOrNull(1) ?: return null) ?: return null)
                 "anchor" -> when (t.getOrNull(1)) {

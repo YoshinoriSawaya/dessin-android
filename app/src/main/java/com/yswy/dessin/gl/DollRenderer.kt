@@ -17,6 +17,7 @@ import com.yswy.dessin.core.render.DisplayOptions
 import com.yswy.dessin.core.render.MeshDraw
 import com.yswy.dessin.core.render.MeshStyle
 import com.yswy.dessin.core.render.drawPlan
+import com.yswy.dessin.core.render.sunLightMatrix
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.Skeleton
 import javax.microedition.khronos.egl.EGLConfig
@@ -26,6 +27,7 @@ import javax.microedition.khronos.opengles.GL10
  * 3D の描画。GL のスレッドで動き、UI のスレッドからは scene を差し替えて requestRender する。
  * 何をどう描くかは :core の drawPlan が決め、ここでは Web版(three.js)と同じ順序で描く:
  * 不透明な部位 → 半透明のゴースト(奥から) → 可動域・縁・玉(奥行きを見ずに手前へ)。
+ * 影を出すとき(E11)は、その前に置いた部位を太陽から見た奥行きとして下描きし、部位の陰影で使う(床には落とさない)。
  */
 class DollRenderer : GLSurfaceView.Renderer {
     /** 描く内容。UI のスレッドから丸ごと差し替える */
@@ -41,6 +43,13 @@ class DollRenderer : GLSurfaceView.Renderer {
 
     private lateinit var lit: GlProgram
     private lateinit var flat: GlProgram
+    private lateinit var depth: GlProgram
+    private lateinit var shadowMap: ShadowMap
+    private var width = 1
+    private var height = 1
+    /** 今のフレームで影を使うか、と太陽から見た行列 */
+    private var shadowOn = false
+    private var lightViewProjection = IDENTITY
     private lateinit var gridCenter: GpuLines
     private lateinit var gridOthers: GpuLines
     private lateinit var dotSphere: GpuMesh
@@ -59,6 +68,8 @@ class DollRenderer : GLSurfaceView.Renderer {
         GLES30.glBlendFunc(GLES30.GL_SRC_ALPHA, GLES30.GL_ONE_MINUS_SRC_ALPHA)
         lit = GlProgram(LitShader.VERTEX, LitShader.FRAGMENT)
         flat = GlProgram(FlatShader.VERTEX, FlatShader.FRAGMENT)
+        depth = GlProgram(DepthShader.VERTEX, DepthShader.FRAGMENT)
+        shadowMap = ShadowMap(SHADOW_SIZE)
         val grid = gridLines(size = 6.0, divisions = 12, y = 0.001)
         gridCenter = GpuLines(grid.center)
         gridOthers = GpuLines(grid.others)
@@ -70,6 +81,8 @@ class DollRenderer : GLSurfaceView.Renderer {
 
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
         GLES30.glViewport(0, 0, width, height)
+        this.width = width
+        this.height = height
         aspect = width.toDouble() / height.coerceAtLeast(1)
     }
 
@@ -82,6 +95,7 @@ class DollRenderer : GLSurfaceView.Renderer {
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
         viewProjection = (s.camera.projectionMatrix(aspect) * s.camera.viewMatrix()).toFloatArray()
         val plan = drawPlan(s.skeleton, s.selected, s.options)
+        drawShadowMap(s, plan.meshes.filter { it.style != MeshStyle.GHOST })
 
         if (s.options.grid) {
             drawFlat(IDENTITY, GRID) { gridOthers.draw() }
@@ -112,6 +126,28 @@ class DollRenderer : GLSurfaceView.Renderer {
         // 可動域と玉。奥行きを見ずに常に手前へ
         plan.guidePart?.let { id -> drawGuide(s, id) }
         GLES30.glDepthMask(true)
+    }
+
+    /** 影の下描き(E11)。置いた部位(ゴーストを除く)を太陽から見た奥行きとして書く */
+    private fun drawShadowMap(s: Scene, casters: List<MeshDraw>) {
+        val light = if (s.options.shadows && shadowMap.ready) sunLightMatrix(s.skeleton) else null
+        shadowOn = light != null
+        if (light == null) return
+        lightViewProjection = light.toFloatArray()
+        shadowMap.begin()
+        depth.use()
+        // 裏も表も書き、奥行きを少しずらして自分の影の縞を減らす
+        GLES30.glDisable(GLES30.GL_CULL_FACE)
+        GLES30.glEnable(GLES30.GL_POLYGON_OFFSET_FILL)
+        GLES30.glPolygonOffset(2f, 4f)
+        GLES30.glUniformMatrix4fv(depth.uniform("uLightViewProjection"), 1, false, lightViewProjection, 0)
+        casters.forEach { d ->
+            GLES30.glUniformMatrix4fv(depth.uniform("uModel"), 1, false, meshWorldMatrix(s.skeleton, d.partId, d.meshIndex).toFloatArray(), 0)
+            gpuOf(d.partId)[d.meshIndex].body.draw()
+        }
+        GLES30.glDisable(GLES30.GL_POLYGON_OFFSET_FILL)
+        GLES30.glEnable(GLES30.GL_CULL_FACE)
+        shadowMap.end(width, height)
     }
 
     private fun drawGuide(s: Scene, id: String) {
@@ -151,6 +187,13 @@ class DollRenderer : GLSurfaceView.Renderer {
         GLES30.glUniform3fv(lit.uniform("uColor"), 1, color, 0)
         GLES30.glUniform3fv(lit.uniform("uEmissive"), 1, emissive, 0)
         GLES30.glUniform1f(lit.uniform("uOpacity"), opacity)
+        // 影(E11)。下描きはテクスチャの1番に置く
+        GLES30.glUniformMatrix4fv(lit.uniform("uLightViewProjection"), 1, false, lightViewProjection, 0)
+        GLES30.glUniform1f(lit.uniform("uShadow"), if (shadowOn) 1f else 0f)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE1)
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, shadowMap.texture)
+        GLES30.glUniform1i(lit.uniform("uShadowMap"), 1)
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0)
     }
 
     private inline fun drawFlat(model: FloatArray, color: FloatArray, draw: () -> Unit) {
@@ -173,6 +216,8 @@ class DollRenderer : GLSurfaceView.Renderer {
 
     private companion object {
         val IDENTITY = Mat4.IDENTITY.toFloatArray()
+        /** 影の下描きの解像度 */
+        const val SHADOW_SIZE = 2048
 
         // 色は Web版の材質の値(0xRRGGBB を 0〜1 に)
         val PAPER = rgb(0xe6e4df)

@@ -5,12 +5,13 @@ import com.yswy.dessin.core.mesh.PartVisuals
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.Skeleton
 
-/** 表示の切替(Web版の「ガイド」「正中線」「関節の玉」「格子」) */
+/** 表示の切替(Web版の「ガイド」「正中線」「関節の玉」「格子」と、体に落ちる影。E11) */
 data class DisplayOptions(
     val guides: Boolean = true,
     val lines: Boolean = true,
     val markers: Boolean = true,
     val grid: Boolean = true,
+    val shadows: Boolean = true,
 )
 
 /** メッシュの描き方(Web版の材質) */

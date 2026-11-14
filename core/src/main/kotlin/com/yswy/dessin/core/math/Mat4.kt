@@ -68,6 +68,17 @@ class Mat4(val elements: DoubleArray) {
             )
         }
 
+        /** 正射影。x・y は ±halfSize、奥行きは視点から near〜far(E11 の影に使う) */
+        fun orthographic(halfSize: Double, near: Double, far: Double): Mat4 {
+            val e = DoubleArray(16)
+            e[0] = 1 / halfSize
+            e[5] = 1 / halfSize
+            e[10] = -2 / (far - near)
+            e[14] = -(far + near) / (far - near)
+            e[15] = 1.0
+            return Mat4(e)
+        }
+
         /** 透視投影(three.js の PerspectiveCamera.updateProjectionMatrix)。fovY は縦の視野角(ラジアン) */
         fun perspective(fovY: Double, aspect: Double, near: Double, far: Double): Mat4 {
             val top = near * tan(fovY / 2)

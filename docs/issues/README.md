@@ -14,7 +14,7 @@
 | [E08](epics/E08-body-shapes.md) | 体の形 | 完了(実機での確認待ち) |
 | [E09](epics/E09-default-posture.md) | 初期姿勢 | 完了(実機での確認待ち) |
 | [E10](epics/E10-controls.md) | 操作の追加 | 完了(実機での確認待ち) |
-| [E11](epics/E11-self-shadow.md) | 体に落ちる影 | 未着手 |
+| [E11](epics/E11-self-shadow.md) | 体に落ちる影 | 完了(実機での確認待ち) |
 
 ## いまの状態(2026-11-14 時点)
 - v1.0.0 をリリースした(CHANGELOG、振り返りは docs/retrospectives/R01-v1.md)。実機(Pixel 10a、Android 17)で利用者が触って「いったんOK」
