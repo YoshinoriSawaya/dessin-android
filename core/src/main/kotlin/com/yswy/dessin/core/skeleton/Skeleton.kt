@@ -37,12 +37,14 @@ data class Skeleton(
         val out = LinkedHashMap<String, JointTransform>()
         PartSpecs.all.forEach { spec ->
             out[spec.id] = if (spec.isRoot) {
-                JointTransform(root.position, root.rotation, root.scale)
+                // 身長は人形全体の倍率で、胸の大きさと掛け合わさる(E07-02)
+                JointTransform(root.position, root.rotation, root.scale * body.height)
             } else {
                 val parent = out.getValue(spec.parent!!)
                 val local = localRotation(spec, state(spec.id))
                 // 回転の中心が関節からずれている部位(ひざ)は、中心のまわりに回した分だけ関節が動く
-                val joint = attachOf(spec, body) + spec.pivot + local.rotate(-spec.pivot)
+                val pivot = pivotOf(spec, body)
+                val joint = attachOf(spec, body) + pivot + local.rotate(-pivot)
                 JointTransform(
                     parent.toWorld(joint),
                     parent.rotation * local,
@@ -97,14 +99,19 @@ data class Skeleton(
     /** 可動域の表示の中心(関節のワールド位置) */
     fun guideCenter(id: String): Vec3 = world.getValue(id).position
 
-    /** 可動域の表示の半径。親の拡大率が効く(部位自身の拡大率は効かない) */
-    fun guideRadius(id: String): Double = PartSpecs[id].guideRadius * parentOf(id).scale
+    /**
+     * 可動域の表示(緑の範囲・玉)の拡大率。親の拡大率と、部位自身の長さの倍率(E07-02)が効く。
+     * 部位自身の拡大率(頭の大きさ)は効かない
+     */
+    fun guideScale(id: String): Double = parentOf(id).scale * lengthScale(PartSpecs[id], body)
+
+    /** 可動域の表示の半径 */
+    fun guideRadius(id: String): Double = PartSpecs[id].guideRadius * guideScale(id)
 
     /** 玉のワールド位置 */
     fun dotWorld(id: String): Vec3 {
         val spec = PartSpecs[id]
-        val parent = parentOf(id)
-        return guideCenter(id) + parent.rotation.rotate(dotPosition(spec, state(id)) * parent.scale)
+        return guideCenter(id) + parentOf(id).rotation.rotate(dotPosition(spec, state(id)) * guideScale(id))
     }
 
     /** ワールドの方向へ向ける。可動域に収める(Web版の aimPart) */

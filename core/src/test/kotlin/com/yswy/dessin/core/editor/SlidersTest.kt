@@ -26,6 +26,8 @@ class SlidersTest {
                 Slider(SliderKind.RIB_TILT, "前後の傾き", -90, 90, 0, "°"),
                 Slider(SliderKind.RIB_TWIST, "ひねり", -180, 180, 0, "°"),
                 Slider(SliderKind.RIB_SIDE_TILT, "横の傾き", -90, 90, 0, "°"),
+                // E07-02: 体型の身長
+                Slider(SliderKind.HEIGHT, "身長", 70, 130, 100, "%"),
             ),
             initial.sliders,
         )
@@ -35,7 +37,7 @@ class SlidersTest {
     fun 肋骨の値はオイラー角を度に丸めて出す() {
         val rot = Quat.fromEulerYXZ(Vec3(20.4 * D2R, -35.6 * D2R, 10.0 * D2R))
         val s = initial.copy(skeleton = initial.skeleton.withRoot(RootTransform(scale = 1.234, rotation = rot)))
-        assertEquals(listOf(123, 20, -36, 10), s.sliders.map { it.value })
+        assertEquals(listOf(123, 20, -36, 10, 100), s.sliders.map { it.value }) // 末尾は身長(E07-02)
     }
 
     @Test
@@ -49,7 +51,8 @@ class SlidersTest {
     @Test
     fun 部位はひねり_範囲が0なら使えない() {
         val neck = initial.select("neck")
-        assertEquals(listOf(Slider(SliderKind.ROLL, "ひねり", -30, 30, 0, "°")), neck.sliders)
+        // E07-02 で首に長さと付け根の前後が加わったので、先頭のひねりだけを見る
+        assertEquals(Slider(SliderKind.ROLL, "ひねり", -30, 30, 0, "°"), neck.sliders[0])
         assertTrue(neck.sliders[0].enabled)
         val clav = initial.select("clavL").sliders
         assertEquals(Slider(SliderKind.ROLL, "ひねり", 0, 0, 0, "°"), clav[0])
@@ -106,5 +109,59 @@ class SlidersTest {
         val neck = initial.select("neck")
         assertEquals(neck, neck.applySlider(SliderKind.HEAD_SIZE, 120))
         assertEquals(initial, initial.applySlider(SliderKind.ROLL, 10))
+    }
+
+    // ---------- E07-02: 体型の項目 ----------
+
+    @Test
+    fun 首は長さと付け根の前後() {
+        assertEquals(
+            listOf(
+                Slider(SliderKind.ROLL, "ひねり", -30, 30, 0, "°"),
+                Slider(SliderKind.NECK_LENGTH, "長さ", 50, 200, 100, "%"),
+                Slider(SliderKind.NECK_OFFSET, "付け根の前後", -70, 20, -35, "mm"),
+            ),
+            initial.select("neck").sliders,
+        )
+    }
+
+    @Test
+    fun 上腕_前腕_もも_すねは長さ_すねはひざの転がりも() {
+        val arm = initial.select("clavL").select("upperArmL")
+        assertEquals(Slider(SliderKind.LIMB_LENGTH, "長さ(左右)", 70, 130, 100, "%"), arm.sliders[1])
+        assertEquals(Slider(SliderKind.LIMB_LENGTH, "長さ(左右)", 70, 130, 100, "%"), arm.select("forearmL").sliders[1])
+        val leg = initial.select("flank").select("pelvis").select("hipR").select("thighR")
+        assertEquals(Slider(SliderKind.LIMB_LENGTH, "長さ(左右)", 70, 130, 100, "%"), leg.sliders[1])
+        assertEquals(
+            listOf(
+                Slider(SliderKind.ROLL, "ひねり", 0, 0, 0, "°"),
+                Slider(SliderKind.LIMB_LENGTH, "長さ(左右)", 70, 130, 100, "%"),
+                Slider(SliderKind.KNEE_ROLL, "ひざの転がり", 0, 60, 30, "mm"),
+            ),
+            leg.select("shinR").sliders,
+        )
+        // 手と足には長さが無い
+        assertEquals(1, arm.select("forearmL").select("handL").sliders.size)
+    }
+
+    @Test
+    fun 体型の項目を変える() {
+        val s = initial.applySlider(SliderKind.HEIGHT, 110)
+            .select("neck").applySlider(SliderKind.NECK_LENGTH, 150).applySlider(SliderKind.NECK_OFFSET, -50)
+            .select("clavL").select("upperArmL").applySlider(SliderKind.LIMB_LENGTH, 120)
+            .select("forearmL").applySlider(SliderKind.LIMB_LENGTH, 90)
+            .select("flank").select("pelvis").select("hipL").select("thighL").applySlider(SliderKind.LIMB_LENGTH, 110)
+            .select("shinL").applySlider(SliderKind.LIMB_LENGTH, 80).applySlider(SliderKind.KNEE_ROLL, 45)
+        val b = s.skeleton.body
+        assertEquals(1.1, b.height, EPS)
+        assertEquals(1.5, b.neckLength, EPS)
+        assertEquals(-0.05, b.neckOffset, EPS)
+        assertEquals(1.2, b.upperArmLength, EPS)
+        assertEquals(0.9, b.forearmLength, EPS)
+        assertEquals(1.1, b.thighLength, EPS)
+        assertEquals(0.8, b.shinLength, EPS)
+        assertEquals(0.045, b.kneeRoll, EPS)
+        // 胸の大きさ(ポーズ)は変わらない
+        assertEquals(1.0, s.skeleton.root.scale, EPS)
     }
 }

@@ -124,7 +124,7 @@ class DollRenderer : GLSurfaceView.Renderer {
         }
         GLES30.glDisable(GLES30.GL_DEPTH_TEST)
         GLES30.glDisable(GLES30.GL_CULL_FACE)
-        val model = Mat4.compose(s.skeleton.guideCenter(id), parent.rotation, parent.scale).toFloatArray()
+        val model = Mat4.compose(s.skeleton.guideCenter(id), parent.rotation, s.skeleton.guideScale(id)).toFloatArray()
         drawFlat(model, ROM) { g.area.draw() }
         drawFlat(model, ROM_LINE) { g.outline.draw() }
         val dot = s.skeleton.dotWorld(id)
