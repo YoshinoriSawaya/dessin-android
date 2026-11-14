@@ -1,5 +1,6 @@
 package com.yswy.dessin.ui
 
+import com.yswy.dessin.core.editor.wheelZoom
 import com.yswy.dessin.core.editor.setAnchor
 import com.yswy.dessin.core.editor.setSex
 import com.yswy.dessin.core.editor.setHandShape
@@ -112,6 +113,10 @@ fun DessinScreen(start: EditorState) {
         }
         override fun onCancel(id: Int) {
             state = gesture.cancel(state, id)
+        }
+        override fun onWheel(steps: Double) {
+            hintVisible = false
+            state = state.wheelZoom(steps)
         }
     }
 
