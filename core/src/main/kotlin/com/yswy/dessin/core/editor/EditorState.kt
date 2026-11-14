@@ -17,6 +17,7 @@ data class PartChip(val id: String, val label: String, val look: ChipLook) {
  * 編集画面の状態。不変で、操作は新しい EditorState を返す。
  * @property camera 視点。画面の大きさが分かって全体を表示するまでは null
  * @property panelOpen 操作パネルを開いているか(Web版の折りたたみ)
+ * @property cameraOnly カメラだけを操作するモード(E12)。指の操作で部位を動かさず、選ばない
  */
 data class EditorState(
     val skeleton: Skeleton = NaturalPose.initial,
@@ -24,6 +25,7 @@ data class EditorState(
     val camera: OrbitCamera? = null,
     val options: DisplayOptions = DisplayOptions(),
     val panelOpen: Boolean = true,
+    val cameraOnly: Boolean = false,
 ) {
     /** 部位を選ぶ。置いていなければ自然な姿勢(E09)で置く。置けない部位なら何もしない(Web版の select) */
     fun select(id: String): EditorState {
@@ -48,6 +50,8 @@ data class EditorState(
     }
 
     fun togglePanel(): EditorState = copy(panelOpen = !panelOpen)
+
+    fun toggleCameraOnly(): EditorState = copy(cameraOnly = !cameraOnly)
 
     fun withCamera(camera: OrbitCamera): EditorState = copy(camera = camera)
 

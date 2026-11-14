@@ -15,7 +15,7 @@
 | [E09](epics/E09-default-posture.md) | 初期姿勢 | 完了(実機での確認待ち) |
 | [E10](epics/E10-controls.md) | 操作の追加 | 完了(実機での確認待ち) |
 | [E11](epics/E11-self-shadow.md) | 体に落ちる影 | 完了(実機での確認待ち) |
-| [E12](epics/E12-camera-mode.md) | カメラだけを操作するモード | 未着手 |
+| [E12](epics/E12-camera-mode.md) | カメラだけを操作するモード | 完了(実機での確認待ち) |
 | [E13](epics/E13-multi-doll.md) | 複数の人形 | 未着手 |
 
 ## いまの状態(2026-11-14 時点)
