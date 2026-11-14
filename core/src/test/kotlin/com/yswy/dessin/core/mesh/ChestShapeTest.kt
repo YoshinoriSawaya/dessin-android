@@ -60,6 +60,41 @@ class ChestShapeTest {
     }
 
     @Test
+    fun 上端の切り口は前と肩の側で低い() {
+        // E14-02: 首側を斜めに切る。後ろの中央が最も高く(0.15)、前へ 25°・肩へ 15° 下がる
+        assertEquals(0.15, PartVisuals.chestTopY(0.0, -0.0544), 1e-3)
+        val backTop = chest.filter { it.z < 0 && abs(it.x) < 1e-6 }.maxOf { it.y }
+        // 前・横の面の縁だけを見る(ふたの真ん中の頂点を除く)
+        val frontTop = chest.filter { it.z > 0.05 && abs(it.x) < 1e-6 }.maxOf { it.y }
+        val sideTop = chest.filter { abs(it.z) < 1e-6 && it.x > 0.05 }.maxOf { it.y }
+        assertEquals(0.15, backTop, 1e-6)
+        assertTrue("前は後ろより 0.04 以上低い: $frontTop", frontTop < backTop - 0.04)
+        assertTrue("肩の側も低い: $sideTop", sideTop < backTop - 0.02)
+        // どの頂点も切り口より上に出ない
+        chest.forEach { assertTrue("切り口より上: $it", it.y <= PartVisuals.chestTopY(it.x, it.z) + 1e-5) }
+    }
+
+    @Test
+    fun 首と肩の付け根は切り口の近くにある() {
+        // 付け根は今の位置のまま。切り口からの高さのずれが 1cm 以内
+        val neck = PartSpecs["neck"].attach
+        val clav = PartSpecs["clavL"].attach
+        assertEquals(neck.y, PartVisuals.chestTopY(neck.x, neck.z), 0.01)
+        assertEquals(clav.y, PartVisuals.chestTopY(clav.x, clav.z), 0.01)
+    }
+
+    @Test
+    fun 前の縦線は切り口で止まる() {
+        val p = PartVisuals.placement("rib", 0, BodyParams())
+        val m = Mat4.compose(p.position, p.rotation, p.scale)
+        val front = PartVisuals.meshes("rib")[0].lines[0]
+        val pts = (0 until front.vertexCount).map { m.transformPoint(front.vertex(it)) }
+        // 前・横の面の縁だけを見る(ふたの真ん中の頂点を除く)
+        val frontTop = chest.filter { it.z > 0.05 && abs(it.x) < 1e-6 }.maxOf { it.y }
+        assertTrue(pts.maxOf { it.y } < frontTop + 0.01)
+    }
+
+    @Test
     fun 線は前後の縦線2本と輪1本のまま_縦線は形に沿う() {
         val lines = PartVisuals.meshes("rib")[0].lines
         assertEquals(3, lines.size)
