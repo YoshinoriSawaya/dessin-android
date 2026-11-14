@@ -124,7 +124,8 @@ fun attachOf(spec: PartSpec, params: BodyParams): Vec3 {
 
 /** 回転の中心の、関節からのずれ。ひざ(すね)は体型の kneeRoll だけ上(E07-02)。ほかは定義のまま */
 fun pivotOf(spec: PartSpec, params: BodyParams): Vec3 =
-    if (spec.pivot == Vec3.ZERO) spec.pivot else Vec3(0.0, params.kneeRoll, 0.0)
+    // ずれ無しは長さで判定する(-0.0 を含む成分の比較だと右側の部位がひざ扱いになっていた。2026-11-14 の不具合)
+    if (spec.pivot.lengthSq() == 0.0) Vec3.ZERO else Vec3(0.0, params.kneeRoll, 0.0)
 
 /** 頭の大きさの基準。headSize = 1.0(100%)のときの頭は、v1 の頭のこの倍率(E07-01) */
 const val HEAD_BASE_SCALE = 0.7
