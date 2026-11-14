@@ -12,7 +12,7 @@
 | [E06](epics/E06-limb-tuning.md) | 実機確認の調整(手足) | 完了 |
 | [E07](epics/E07-body-type.md) | 体型の調整と保存 | 完了(実機での確認待ち) |
 | [E08](epics/E08-body-shapes.md) | 体の形 | 完了(実機での確認待ち) |
-| [E09](epics/E09-default-posture.md) | 初期姿勢 | 未着手 |
+| [E09](epics/E09-default-posture.md) | 初期姿勢 | 完了(実機での確認待ち) |
 | [E10](epics/E10-controls.md) | 操作の追加 | 未着手 |
 | [E11](epics/E11-self-shadow.md) | 体に落ちる影 | 未着手 |
 

@@ -56,5 +56,6 @@ adb shell am start -n com.yswy.dessin/.MainActivity --es demo all --es select up
 ```
 
 - `--es demo all`: 全部位を置き、腕と脚を少し動かした姿勢
+- `--es demo natural`: 画面で順に選んだときと同じく、全部位を自然な姿勢(E09)で置く
 - `--es pose "<保存形式の文字列。改行の代わりに ;>"`: 保存形式(PoseCodec)で指定
 - `--es select <部位id>`: 選択する部位(置けるなら置く)
