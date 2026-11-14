@@ -68,18 +68,13 @@ data class Skeleton(
         return copy(placed = placed + id, states = states + (id to PartState.rest(PartSpecs[id])))
     }
 
-    /** 部位を子孫ごと外し、休止状態に戻す。頭を外すと頭の大きさも戻す(Web版の removePart) */
+    /** 部位を子孫ごと外し、休止状態に戻す(Web版の removePart)。体型は変えない(E07-03。Web版は頭の大きさを戻していた) */
     fun remove(id: String): Skeleton {
         val spec = PartSpecs[id]
         if (spec.isRoot) return this
         val removed = subtree(id)
         val resetStates = removed.associateWith { PartState.rest(PartSpecs[it]) }
-        val headRemoved = removed.any { PartSpecs[it].adjust == Adjust.HEAD_SIZE }
-        return copy(
-            placed = placed - removed.toSet(),
-            states = states + resetStates,
-            body = if (headRemoved) body.copy(headSize = BodyParams().headSize) else body,
-        )
+        return copy(placed = placed - removed.toSet(), states = states + resetStates)
     }
 
     /** 向きを戻す。胸は位置・回転・大きさを初期値に戻す(Web版の resetPart) */

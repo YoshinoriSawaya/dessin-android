@@ -70,7 +70,8 @@ class PanelActions(
 
 /**
  * 下の操作パネル(Web版の #panel)。選択中の部位、向きを戻す・外す・折りたたみ、説明、スライダー、部位チップ。
- * 回転オーブはスライダーの右に置く。tools には「表示」の段、saveTools には「保存」の段に並べるボタンを渡す。
+ * 回転オーブはスライダーの右に置く。tools には「表示」の段、saveTools には「保存」(ポーズ)の段、
+ * bodyTools には「体型」の段(E07-03)に並べるボタンを渡す。
  */
 @Composable
 fun ControlPanel(
@@ -79,6 +80,7 @@ fun ControlPanel(
     modifier: Modifier = Modifier,
     tools: @Composable () -> Unit,
     saveTools: @Composable () -> Unit,
+    bodyTools: @Composable () -> Unit,
 ) {
     Column(modifier.background(Palette.Panel).padding(horizontal = 16.dp, vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -107,6 +109,7 @@ fun ControlPanel(
             }
             Group("表示") { tools() }
             Group("保存") { saveTools() }
+            Group("体型") { bodyTools() }
         }
     }
 }

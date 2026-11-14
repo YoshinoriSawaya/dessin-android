@@ -23,26 +23,26 @@ sealed interface PoseDecodeResult {
  * ポーズ(Skeleton)と文字列の変換。依存を増やさないため、JSON ではなく行形式のテキストにする。
  *
  * ```
- * dessin-pose 1
+ * dessin-pose 3
  * root <px> <py> <pz> <qx> <qy> <qz> <qw> <scale>
- * body <headSize> <shoulderWidth> <pelvisWidth> <hipInset>
  * part <id> <置いたか 0|1> <phi> <psi> <roll>
  * ```
  *
  * 読み込みでは、形式の誤りはエラーにし、値は範囲に収める(可動域、体型と胸の大きさの範囲、回転の正規化)。
  * 書かれていない値は初期値、知らない部位の行は無視、親が置かれていない部位は外した扱いにする。
+ *
+ * 体型はポーズに含めない(E07-03)。版2までは `body <headSize> <shoulderWidth> <pelvisWidth> <hipInset>` の行があり、
+ * 読み込むと骨格の体型に入れる(画面の状態の引き継ぎ用。保存したポーズを読み込む側はいまの体型を保つ)。
  */
 object PoseCodec {
     const val HEADER = "dessin-pose"
-    /** 版2: 脇腹(flank)を足し、骨盤の親を脇腹にした(E05-01)。版1も読める */
-    const val VERSION = 2
+    /** 版3: 体型の行を外した(E07-03)。版2: 脇腹(flank)を足し、骨盤の親を脇腹にした(E05-01)。版1・2も読める */
+    const val VERSION = 3
 
     fun encode(skeleton: Skeleton): String = buildString {
         appendLine("$HEADER $VERSION")
         val r = skeleton.root
         appendLine(listOf("root", r.position.x, r.position.y, r.position.z, r.rotation.x, r.rotation.y, r.rotation.z, r.rotation.w, r.scale).joinToString(" "))
-        val b = skeleton.body
-        appendLine(listOf("body", b.headSize, b.shoulderWidth, b.pelvisWidth, b.hipInset).joinToString(" "))
         PartSpecs.all.filterNot { it.isRoot }.forEach { spec ->
             val s = skeleton.state(spec.id)
             val placed = if (skeleton.isPlaced(spec.id)) 1 else 0
@@ -63,7 +63,7 @@ object PoseCodec {
         val head = lines.firstOrNull()?.split(WS) ?: throw PoseFormatException("空のデータ")
         if (head.size != 2 || head[0] != HEADER) throw PoseFormatException("見出しが違う: ${lines.first()}")
         val version = head[1].toIntOrNull()
-        if (version != 1 && version != VERSION) throw PoseFormatException("知らない版: ${head[1]}")
+        if (version == null || version !in 1..VERSION) throw PoseFormatException("知らない版: ${head[1]}")
 
         var root = RootTransform()
         var body = BodyParams()
@@ -77,6 +77,7 @@ object PoseCodec {
                     root = RootTransform(Vec3(n[0], n[1], n[2]), normalized(Quat(n[3], n[4], n[5], n[6])), n[7].coerceIn(RootTransform.SCALE_RANGE))
                 }
                 "body" -> {
+                    if (version >= 3) throw PoseFormatException("版3に体型の行は無い: $line")
                     val n = numbers(line, t, 4)
                     body = BodyParams(
                         n[0].coerceIn(BodyParams.HEAD_SIZE_RANGE),

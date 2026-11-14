@@ -43,6 +43,7 @@ import com.yswy.dessin.core.editor.applyOrb
 import com.yswy.dessin.core.editor.applySlider
 import com.yswy.dessin.core.editor.fitView
 import com.yswy.dessin.core.editor.isOn
+import com.yswy.dessin.core.editor.loadBody
 import com.yswy.dessin.core.editor.loadPose
 import com.yswy.dessin.core.editor.preset
 import com.yswy.dessin.core.editor.toggle
@@ -75,9 +76,10 @@ fun DessinScreen(start: EditorState) {
     val tallEnough = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() } > 620.dp
     // 全体を表示に使う 3D の画面の縦横比
     var aspect by remember { mutableDoubleStateOf(1.0) }
-    // 名前を付けて保存したポーズ
+    // 名前を付けて保存したポーズと体型(体型はポーズと別に保存する。E07-03)
     val context = LocalContext.current
-    val poses = remember { PoseShelf(context) }
+    val poses = remember { Shelf.poses(context) }
+    val bodies = remember { Shelf.bodies(context) }
     var dialog by remember { mutableStateOf<PoseDialog?>(null) }
 
     val actions = PanelActions(
@@ -136,8 +138,12 @@ fun DessinScreen(start: EditorState) {
                 Display.entries.forEach { d -> ToolChip(d.label(), pressed = state.isOn(d)) { state = state.toggle(d) } }
             },
             saveTools = {
-                ToolChip("名前を付けて保存") { dialog = PoseDialog.Save(poses.suggestName()) }
-                ToolChip("保存したポーズ") { poses.list()?.let { dialog = PoseDialog.List(it) } }
+                ToolChip("名前を付けて保存") { dialog = PoseDialog.Save(SaveKind.POSE, poses.suggestName()) }
+                ToolChip("保存したポーズ") { poses.list()?.let { dialog = PoseDialog.List(SaveKind.POSE, it) } }
+            },
+            bodyTools = {
+                ToolChip("名前を付けて保存") { dialog = PoseDialog.Save(SaveKind.BODY, bodies.suggestName()) }
+                ToolChip("保存した体型") { bodies.list()?.let { dialog = PoseDialog.List(SaveKind.BODY, it) } }
             },
         )
     }
@@ -145,13 +151,33 @@ fun DessinScreen(start: EditorState) {
     when (val d = dialog) {
         is PoseDialog.Save -> SavePoseDialog(
             suggestedName = d.suggestedName,
-            onSave = { name -> if (poses.save(name, state.skeleton)) dialog = null },
+            onSave = { name ->
+                val saved = when (d.kind) {
+                    SaveKind.POSE -> poses.save(name, state.skeleton)
+                    SaveKind.BODY -> bodies.save(name, state.skeleton.body)
+                }
+                if (saved) dialog = null
+            },
             onDismiss = { dialog = null },
         )
         is PoseDialog.List -> PoseListDialog(
+            label = d.kind.label,
             items = d.items,
-            onLoad = { id -> poses.load(id)?.let { pose -> state = state.loadPose(pose, aspect); dialog = null } },
-            onDelete = { id -> poses.delete(id); dialog = poses.list()?.let { PoseDialog.List(it) } },
+            onLoad = { id ->
+                when (d.kind) {
+                    SaveKind.POSE -> poses.load(id)?.let { pose -> state = state.loadPose(pose, aspect); dialog = null }
+                    SaveKind.BODY -> bodies.load(id)?.let { body -> state = state.loadBody(body); dialog = null }
+                }
+            },
+            onDelete = { id ->
+                if (d.kind == SaveKind.POSE) {
+                    poses.delete(id)
+                    dialog = poses.list()?.let { PoseDialog.List(d.kind, it) }
+                } else {
+                    bodies.delete(id)
+                    dialog = bodies.list()?.let { PoseDialog.List(d.kind, it) }
+                }
+            },
             onDismiss = { dialog = null },
         )
         null -> Unit
