@@ -5,7 +5,7 @@
 
 ## タスク
 - [ ] [E10-01 根の切り替え(胸/骨盤)](../tasks/E10-01-root-switch.md)
-- [ ] [E10-02 ひざの転がりのずれの調整](../tasks/E10-02-knee-roll-adjust.md)
+- [x] [E10-02 ひざの転がりのずれの調整](../tasks/E10-02-knee-roll-adjust.md)(E07-02 に統合して閉じた)
 
 順序: 互いに独立
 

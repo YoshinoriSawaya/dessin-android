@@ -3,13 +3,17 @@ package com.yswy.dessin.core.editor
 import com.yswy.dessin.core.math.Quat
 import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.skeleton.Adjust
+import com.yswy.dessin.core.skeleton.BodyParams
 import com.yswy.dessin.core.skeleton.PartSpecs
+import com.yswy.dessin.core.skeleton.lengthScale
 import kotlin.math.PI
 import kotlin.math.roundToInt
 
 enum class SliderKind {
     RIB_SIZE, RIB_TILT, RIB_TWIST, RIB_SIDE_TILT,
     ROLL, HEAD_SIZE, SHOULDER_WIDTH, PELVIS_WIDTH, HIP_INSET,
+    // E07-02
+    HEIGHT, NECK_LENGTH, NECK_OFFSET, LIMB_LENGTH, KNEE_ROLL,
 }
 
 /**
@@ -23,6 +27,15 @@ data class Slider(val kind: SliderKind, val label: String, val min: Int, val max
 private const val D2R = PI / 180
 
 private fun deg(r: Double) = (r / D2R).roundToInt()
+private fun pct(v: Double) = (v * 100).roundToInt()
+private fun mm(v: Double) = (v * 1000).roundToInt()
+
+/** 左右の L・R を除いた部位の名前 */
+private fun baseId(id: String) = if (PartSpecs[id].side != null) id.dropLast(1) else id
+
+/** 選択中の部位(上腕・前腕・もも・すね)の長さ */
+private fun EditorState.limbLength(body: BodyParams): Slider =
+    Slider(SliderKind.LIMB_LENGTH, "長さ(左右)", 70, 130, pct(lengthScale(PartSpecs[selected], body)), "%")
 
 /** 選択中の部位で出すスライダー(Web版の syncUI) */
 val EditorState.sliders: List<Slider>
@@ -37,6 +50,7 @@ val EditorState.sliders: List<Slider>
                 Slider(SliderKind.RIB_TILT, "前後の傾き", -90, 90, deg(e.x), "°"),
                 Slider(SliderKind.RIB_TWIST, "ひねり", -180, 180, deg(e.y), "°"),
                 Slider(SliderKind.RIB_SIDE_TILT, "横の傾き", -90, 90, deg(e.z), "°"),
+                Slider(SliderKind.HEIGHT, "身長", 70, 130, pct(body.height), "%"),
             )
         }
         return buildList {
@@ -49,6 +63,17 @@ val EditorState.sliders: List<Slider>
                     add(Slider(SliderKind.HIP_INSET, "付け根の内寄り", 0, 80, (body.hipInset * 1000).roundToInt(), "mm"))
                 }
                 null -> Unit
+            }
+            when (baseId(selected)) {
+                "neck" -> {
+                    add(Slider(SliderKind.NECK_LENGTH, "長さ", 50, 200, pct(body.neckLength), "%"))
+                    add(Slider(SliderKind.NECK_OFFSET, "付け根の前後", -70, 20, mm(body.neckOffset), "mm"))
+                }
+                "upperArm", "forearm", "thigh" -> add(limbLength(body))
+                "shin" -> {
+                    add(limbLength(body))
+                    add(Slider(SliderKind.KNEE_ROLL, "ひざの転がり", 0, 60, mm(body.kneeRoll), "mm"))
+                }
             }
         }
     }
@@ -72,5 +97,19 @@ fun EditorState.applySlider(kind: SliderKind, value: Int): EditorState {
         SliderKind.SHOULDER_WIDTH -> copy(skeleton = s.withBody(s.body.copy(shoulderWidth = value / 100.0)))
         SliderKind.PELVIS_WIDTH -> copy(skeleton = s.withBody(s.body.copy(pelvisWidth = value / 100.0)))
         SliderKind.HIP_INSET -> copy(skeleton = s.withBody(s.body.copy(hipInset = value / 1000.0)))
+        SliderKind.HEIGHT -> copy(skeleton = s.withBody(s.body.copy(height = value / 100.0)))
+        SliderKind.NECK_LENGTH -> copy(skeleton = s.withBody(s.body.copy(neckLength = value / 100.0)))
+        SliderKind.NECK_OFFSET -> copy(skeleton = s.withBody(s.body.copy(neckOffset = value / 1000.0)))
+        SliderKind.KNEE_ROLL -> copy(skeleton = s.withBody(s.body.copy(kneeRoll = value / 1000.0)))
+        SliderKind.LIMB_LENGTH -> {
+            val k = value / 100.0
+            val b = s.body
+            copy(skeleton = s.withBody(when (baseId(selected)) {
+                "upperArm" -> b.copy(upperArmLength = k)
+                "forearm" -> b.copy(forearmLength = k)
+                "thigh" -> b.copy(thighLength = k)
+                else -> b.copy(shinLength = k)
+            }))
+        }
     }
 }

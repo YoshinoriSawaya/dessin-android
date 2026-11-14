@@ -10,6 +10,7 @@ import com.yswy.dessin.core.skeleton.Side
 import com.yswy.dessin.core.skeleton.Skeleton
 import com.yswy.dessin.core.skeleton.HIP_ROOT_X
 import com.yswy.dessin.core.skeleton.PELVIS_OUTER
+import com.yswy.dessin.core.skeleton.lengthScale
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max
@@ -47,7 +48,8 @@ object PartVisuals {
 
     /**
      * 体型を反映したメッシュの置き方(Web版の setShoulderWidth・setPelvisWidth・updateHips)。
-     * 肩は長さ、骨盤は横幅、付け根は長さが変わる。頭の大きさは関節の拡大率で効くのでここでは扱わない。
+     * 肩は長さ、骨盤は横幅、付け根は長さが変わる。首・上腕・前腕・もも・すねは長さの倍率で縦に伸びる。
+     * 頭の大きさと身長は関節の拡大率で効くのでここでは扱わない。
      */
     fun placement(id: String, index: Int, body: BodyParams): MeshPlacement {
         val e = table.getValue(id)[index]
@@ -67,6 +69,11 @@ object PartVisuals {
                     return MeshPlacement(Vec3(sg * len / 2, e.position.y, e.position.z), e.rotation, Vec3(1.0, len / 0.05, 1.0))
                 }
             }
+        }
+        // 長さを変えた部位(首・上腕・前腕・もも・すね)の形は縦に伸ばす。関節の玉(MARKER)はそのまま(E07-02)
+        val k = lengthScale(spec, body)
+        if (k != 1.0 && e.part.kind == MeshKind.BODY) {
+            return MeshPlacement(Vec3(e.position.x, e.position.y * k, e.position.z), e.rotation, Vec3(1.0, k, 1.0))
         }
         return MeshPlacement(e.position, e.rotation, Vec3(1.0, 1.0, 1.0))
     }

@@ -5,7 +5,7 @@
 
 ## タスク
 - [x] [E07-01 頭の大きさの基準を 70% にする](../tasks/E07-01-head-size.md)
-- [ ] [E07-02 体型のデータと調整](../tasks/E07-02-body-params.md)
+- [x] [E07-02 体型のデータと調整](../tasks/E07-02-body-params.md)
 - [ ] [E07-03 体型の保存](../tasks/E07-03-body-save.md)
 
 順序: 01 → 02 → 03

@@ -94,7 +94,7 @@ fun romPoint(skeleton: Skeleton, selected: String, options: DisplayOptions, ray:
     val spec = PartSpecs[selected]
     val parent = skeleton.worldTransforms().getValue(spec.parent!!)
     val area = guideAreas.getOrPut(selected) { guideMesh(spec).area }
-    val model = Mat4.compose(skeleton.guideCenter(selected), parent.rotation, parent.scale)
+    val model = Mat4.compose(skeleton.guideCenter(selected), parent.rotation, skeleton.guideScale(selected))
     return nearestHit(area, model, ray, doubleSided = true)?.point
 }
 

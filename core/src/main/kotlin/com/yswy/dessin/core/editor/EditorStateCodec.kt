@@ -2,6 +2,7 @@ package com.yswy.dessin.core.editor
 
 import com.yswy.dessin.core.camera.OrbitCamera
 import com.yswy.dessin.core.math.Vec3
+import com.yswy.dessin.core.pose.BodyCodec
 import com.yswy.dessin.core.pose.PoseCodec
 import com.yswy.dessin.core.pose.PoseDecodeResult
 import com.yswy.dessin.core.render.DisplayOptions
@@ -15,6 +16,7 @@ import com.yswy.dessin.core.render.DisplayOptions
  * camera <注視点xyz> <yaw> <pitch> <距離>   ← 視点が決まっていなければ無い
  * options <ガイド> <正中線> <関節の玉> <格子>   ← 0 か 1
  * panel <0|1>
+ * bodytype <BodyCodec の1行>   ← E07-02。無ければポーズの体型のまま
  * pose
  * <PoseCodec の文字列>
  * ```
@@ -29,6 +31,7 @@ object EditorStateCodec {
         val o = state.options
         appendLine("options ${bit(o.guides)} ${bit(o.lines)} ${bit(o.markers)} ${bit(o.grid)}")
         appendLine("panel ${bit(state.panelOpen)}")
+        appendLine("bodytype ${BodyCodec.encodeLine(state.skeleton.body)}")
         appendLine("pose")
         append(PoseCodec.encode(state.skeleton))
     }
@@ -59,6 +62,10 @@ object EditorStateCodec {
                     state.copy(options = DisplayOptions(b[0], b[1], b[2], b[3]))
                 }
                 "panel" -> state.copy(panelOpen = flag(t.getOrNull(1) ?: return null) ?: return null)
+                "bodytype" -> {
+                    val body = BodyCodec.decodeLine(line.removePrefix("bodytype")) ?: return null
+                    state.copy(skeleton = state.skeleton.withBody(body))
+                }
                 else -> return null
             }
         }
