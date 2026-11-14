@@ -45,7 +45,11 @@ class DrawPlanTest {
     @Test
     fun 全部置くと全メッシュを描く() {
         val plan = drawPlan(all, "rib", DisplayOptions())
-        assertEquals(PartSpecs.all.sumOf { PartVisuals.meshes(it.id).size }, plan.meshes.size)
+        // 手は今の形(既定はパー)のメッシュだけを描く(E08-02)
+        assertEquals(
+            PartSpecs.all.sumOf { s -> PartVisuals.meshes(s.id).count { it.handShape == null || it.handShape == all.handShape(s.id) } },
+            plan.meshes.size,
+        )
         assertTrue(plan.meshes.none { it.style == MeshStyle.GHOST })
     }
 

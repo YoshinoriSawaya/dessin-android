@@ -25,12 +25,14 @@ data class JointTransform(val position: Vec3, val rotation: Quat, val scale: Dou
 /**
  * 人形全体の状態。不変で、操作は新しい Skeleton を返す。
  * 部位の id は PartSpecs と同じ。置いていない部位も状態と変換を持つ(半透明の表示に使う)。
+ * hands は手の形(E08-02)。既定(パー)と違う手だけを持つ(等しさの比較を保存の前後で揃えるため)
  */
 data class Skeleton(
     val root: RootTransform,
     val states: Map<String, PartState>,
     val placed: Set<String>,
     val body: BodyParams,
+    val hands: Map<String, HandShape> = emptyMap(),
 ) {
     /** 全関節のワールド変換。親から順に合成する */
     private val world: Map<String, JointTransform> by lazy {
@@ -74,7 +76,8 @@ data class Skeleton(
         if (spec.isRoot) return this
         val removed = subtree(id)
         val resetStates = removed.associateWith { PartState.rest(PartSpecs[it]) }
-        return copy(placed = placed - removed.toSet(), states = states + resetStates)
+        // 手を外したら手の形も既定(パー)に戻す(E08-02)
+        return copy(placed = placed - removed.toSet(), states = states + resetStates, hands = hands - removed.toSet())
     }
 
     /** 向きを戻す。胸は位置・回転・大きさを初期値に戻す(Web版の resetPart) */
@@ -88,6 +91,14 @@ data class Skeleton(
     fun withRoot(root: RootTransform): Skeleton = copy(root = root)
 
     fun withBody(body: BodyParams): Skeleton = copy(body = body)
+
+    /** 手の形(E08-02)。手でない部位は既定 */
+    fun handShape(id: String): HandShape = hands[id] ?: HandShape.DEFAULT
+
+    fun withHandShape(id: String, shape: HandShape): Skeleton {
+        require(isHand(id)) { "$id は手ではない" }
+        return copy(hands = if (shape == HandShape.DEFAULT) hands - id else hands + (id to shape))
+    }
 
     fun worldTransforms(): Map<String, JointTransform> = world
 
