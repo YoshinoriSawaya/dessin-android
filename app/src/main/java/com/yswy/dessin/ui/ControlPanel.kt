@@ -73,6 +73,8 @@ class PanelActions(
     val onTogglePanel: () -> Unit,
     val onSlider: (SliderKind, Int) -> Unit,
     val onOrb: (Quat) -> Unit,
+    /** スライダー・回転オーブの1回の操作が終わった(Undo の1段にまとめる。E15-01) */
+    val onEditEnd: () -> Unit,
     val onHandShape: (HandShape) -> Unit,
     val onSex: (Sex) -> Unit,
     val onAnchor: (Anchor) -> Unit,
@@ -117,9 +119,9 @@ fun ControlPanel(
             // スライダーと回転オーブを横に並べる(Web版の .ctl)
             Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.weight(1f)) {
-                    state.sliders.forEach { SliderRow(it, actions.onSlider) }
+                    state.sliders.forEach { SliderRow(it, actions.onSlider, actions.onEditEnd) }
                 }
-                OrbView(state, actions.onOrb)
+                OrbView(state, actions.onOrb, onEnd = actions.onEditEnd)
             }
             // 手を選んでいるときだけ、グーとパーを切り替える(E08-02)
             state.handShapeChoice?.let { current ->
@@ -157,13 +159,14 @@ fun ControlPanel(
 // 溝を細くする Slider の track 指定は Material3 で実験的な API(変わったら標準の見た目に戻せばよい)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SliderRow(slider: Slider, onChange: (SliderKind, Int) -> Unit) {
+private fun SliderRow(slider: Slider, onChange: (SliderKind, Int) -> Unit, onFinished: () -> Unit) {
     val colors = SliderDefaults.colors(thumbColor = Palette.Accent, activeTrackColor = Palette.Accent, inactiveTrackColor = Palette.Line)
     Row(Modifier.fillMaxWidth().heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(slider.label, fontSize = 13.sp, color = Palette.Ink, maxLines = 1, modifier = Modifier.width(96.dp))
         androidx.compose.material3.Slider(
             value = slider.value.toFloat(),
             onValueChange = { v -> val i = v.roundToInt(); if (i != slider.value) onChange(slider.kind, i) },
+            onValueChangeFinished = onFinished,
             // 範囲が0のスライダーは使えないが、Slider は幅0の範囲を受け付けないので1だけ広げて表示する
             valueRange = slider.min.toFloat()..maxOf(slider.max, slider.min + 1).toFloat(),
             enabled = slider.enabled,
@@ -258,16 +261,19 @@ private fun PartChipView(chip: PartChip, onClick: () -> Unit) {
  * (Web版の toolChip と aria-pressed)
  */
 @Composable
-fun ToolChip(label: String, pressed: Boolean? = null, onClick: () -> Unit) {
+fun ToolChip(label: String, pressed: Boolean? = null, enabled: Boolean = true, onClick: () -> Unit) {
     val shape = RoundedCornerShape(50)
     val on = pressed == true
     Box(
         Modifier.heightIn(min = 34.dp)
             .semantics { if (pressed != null) selected = pressed }
             .background(if (on) Palette.Ink else Color.White, shape).border(1.dp, if (on) Palette.Ink else Palette.Line, shape)
-            .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 12.dp),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick).padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
-    ) { Text(label, fontSize = 13.sp, color = if (on) Color.White else Palette.Ink, maxLines = 1) }
+    ) {
+        // 押せないとき(戻せない「戻す」など。E15-01)は淡い文字にする
+        Text(label, fontSize = 13.sp, color = when { on -> Color.White; enabled -> Palette.Ink; else -> Palette.Line }, maxLines = 1)
+    }
 }
 
 @Composable

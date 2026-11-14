@@ -2,6 +2,7 @@ package com.yswy.dessin.ui
 
 import com.yswy.dessin.core.editor.loadScene
 import com.yswy.dessin.core.pose.SavedItem
+import kotlin.reflect.KProperty
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import com.yswy.dessin.core.editor.wheelZoom
@@ -52,6 +53,7 @@ import com.yswy.dessin.core.editor.applySlider
 import com.yswy.dessin.core.editor.fitView
 import com.yswy.dessin.core.editor.isOn
 import com.yswy.dessin.core.editor.loadBody
+import com.yswy.dessin.core.editor.UndoHistory
 import com.yswy.dessin.core.editor.fadeOthers
 import com.yswy.dessin.core.editor.loadPose
 import com.yswy.dessin.core.editor.preset
@@ -85,7 +87,14 @@ fun DessinScreen(start: EditorState) {
     val bodies = remember { Shelf.bodies(context) }
     val defaultBody = remember { DefaultBodyShelf(context) }
     // 起動したときは既定の体型で始める(E07-04)。画面の作り直しのあとは保存した状態に戻す
-    var state by rememberSaveable(stateSaver = EditorStateSaver) { mutableStateOf(start.loadBody(defaultBody.body())) }
+    var screen by rememberSaveable(stateSaver = EditorStateSaver) { mutableStateOf(start.loadBody(defaultBody.body())) }
+    // Undo・Redo の履歴(E15-01)。画面の作り直しやアプリを閉じると消える
+    var history by remember { mutableStateOf(UndoHistory()) }
+    // 画面の状態を変えるときは、いつも履歴に記録する(人形が変わったときだけ1段になる。視点や表示の変更は記録されない)
+    var state by Recorded({ screen }) { next -> history = history.change(screen, next); screen = next }
+    // ドラッグ・スライダー・回転オーブは、1回の操作を1段にまとめる
+    fun beginEdit() { history = history.begin(screen) }
+    fun endEdit() { history = history.commit(screen) }
     // ヒントは 3D に最初に触ったら消す。画面が低ければ最初から出さない(Web版の max-height:620px)
     var hintVisible by rememberSaveable { mutableStateOf(true) }
     val tallEnough = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() } > 620.dp
@@ -100,8 +109,9 @@ fun DessinScreen(start: EditorState) {
         onReset = { state = state.resetSelected() },
         onRemove = { state = state.removeSelected() },
         onTogglePanel = { state = state.togglePanel() },
-        onSlider = { kind, value -> state = state.applySlider(kind, value) },
-        onOrb = { q -> state = state.applyOrb(q) },
+        onSlider = { kind, value -> beginEdit(); state = state.applySlider(kind, value) },
+        onOrb = { q -> beginEdit(); state = state.applyOrb(q) },
+        onEditEnd = { endEdit() },
         onHandShape = { shape -> state = state.setHandShape(shape) },
         onSex = { sex -> state = state.setSex(sex) },
         onAnchor = { anchor -> state = state.setAnchor(anchor) },
@@ -115,6 +125,7 @@ fun DessinScreen(start: EditorState) {
     val pointers = object : PointerListener {
         override fun onDown(id: Int, x: Double, y: Double, time: Long, width: Double, height: Double) {
             hintVisible = false
+            beginEdit()
             state = gesture.down(state, id, x, y, time, width, height)
         }
         override fun onMove(id: Int, x: Double, y: Double, width: Double, height: Double) {
@@ -122,9 +133,11 @@ fun DessinScreen(start: EditorState) {
         }
         override fun onUp(id: Int, x: Double, y: Double, time: Long, width: Double, height: Double) {
             state = gesture.up(state, id, x, y, time, width, height)
+            endEdit()
         }
         override fun onCancel(id: Int) {
             state = gesture.cancel(state, id)
+            endEdit()
         }
         override fun onWheel(steps: Double) {
             hintVisible = false
@@ -161,6 +174,9 @@ fun DessinScreen(start: EditorState) {
             ) {
                 ToolChip("カメラ", pressed = state.cameraOnly) { state = state.toggleCameraOnly() }
                 ToolChip("人形", pressed = state.dollMode) { state = state.toggleDollMode() }
+                // Undo・Redo(E15-01)。戻すときは画面の状態をそのまま差し替える(履歴に記録しない)
+                ToolChip("戻す", enabled = history.canUndo) { history.undo(screen).let { (h, s) -> history = h; screen = s } }
+                ToolChip("やり直す", enabled = history.canRedo) { history.redo(screen).let { (h, s) -> history = h; screen = s } }
             }
         }
         ControlPanel(
@@ -275,4 +291,10 @@ private fun Display.label() = when (this) {
     Display.GRID -> "格子"
     Display.SHADOWS -> "影"
     Display.FADE_OTHERS -> "ほかを淡く"
+}
+
+/** 読み書きを関数に任せる委譲。書き込みのたびに Undo の履歴へ記録するために使う(E15-01) */
+private class Recorded<T>(private val read: () -> T, private val write: (T) -> Unit) {
+    operator fun getValue(thisRef: Any?, property: KProperty<*>): T = read()
+    operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) = write(value)
 }
