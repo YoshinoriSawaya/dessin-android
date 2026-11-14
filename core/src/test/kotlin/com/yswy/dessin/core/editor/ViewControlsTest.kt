@@ -63,7 +63,8 @@ class LoadPoseTest {
         val cam = OrbitCamera(yaw = 1.2, pitch = 0.3, distance = 4.0)
         val loaded = Skeleton.initial().place("flank").place("pelvis").place("hipL").place("thighL")
         val s = EditorState(camera = cam).select("neck").loadPose(loaded, aspect = 0.5)
-        assertEquals(loaded, s.skeleton)
+        // 置いていない部位は自然な姿勢になる(2026-11-14 の不具合の修正)
+        assertEquals(NaturalPose.unplacedNatural(loaded), s.skeleton)
         val (lo, hi) = fitBounds(loaded)!!
         assertEquals(cam.fit(lo, hi, 0.5), s.camera)
     }

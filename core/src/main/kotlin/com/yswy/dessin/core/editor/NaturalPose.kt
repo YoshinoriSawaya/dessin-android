@@ -48,4 +48,15 @@ object NaturalPose {
     }
 
     fun state(spec: PartSpec): PartState = states[spec.id] ?: PartState.rest(spec)
+
+    /**
+     * 置いていない部位を自然な姿勢にする。置く前の半透明の影を、置いたときと同じ角度で描くため
+     * (2026-11-14 の不具合: 付け根を操作中の太ももの影がずれていた)
+     */
+    fun unplacedNatural(skeleton: Skeleton): Skeleton =
+        PartSpecs.all.filterNot { it.isRoot || skeleton.isPlaced(it.id) }
+            .fold(skeleton) { s, spec -> s.withState(spec.id, state(spec)) }
+
+    /** 胸だけを置き、ほかを自然な姿勢にした初めの状態 */
+    val initial: Skeleton by lazy { unplacedNatural(Skeleton.initial()) }
 }

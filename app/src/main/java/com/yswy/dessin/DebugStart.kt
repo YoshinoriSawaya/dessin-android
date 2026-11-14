@@ -5,6 +5,7 @@ import android.content.pm.ApplicationInfo
 import android.content.Context
 import android.util.Log
 import com.yswy.dessin.core.editor.EditorState
+import com.yswy.dessin.core.editor.NaturalPose
 import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.pose.PoseCodec
 import com.yswy.dessin.core.pose.PoseDecodeResult
@@ -37,8 +38,8 @@ fun debugStartState(context: Context, intent: Intent?): EditorState {
         else -> Skeleton.initial()
     }
     val select = intent.getStringExtra("select")?.takeIf { id -> PartSpecs.all.any { it.id == id } } ?: "rib"
-    skeleton = skeleton.place(select)
-    return EditorState(skeleton = skeleton, selected = if (skeleton.isPlaced(select)) select else "rib")
+    // 選ぶ部位は画面で選んだときと同じく置く(自然な姿勢。E09)。置けなければ胸を選ぶ
+    return EditorState(skeleton = NaturalPose.unplacedNatural(skeleton)).select(select)
 }
 
 /** 全部位を置き、腕と脚を少し動かした姿勢 */

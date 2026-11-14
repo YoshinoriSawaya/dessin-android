@@ -39,7 +39,10 @@ fun EditorState.fitView(aspect: Double): EditorState {
  * 保存したポーズを読み込む。選択中の部位が置かれていなければ胸を選び、全体を表示する(視点の向きは保つ)。
  */
 fun EditorState.loadPose(pose: Skeleton, aspect: Double): EditorState =
-    copy(skeleton = pose.withBody(skeleton.body).withAnchor(skeleton.anchor), selected = if (pose.isPlaced(selected)) selected else "rib").fitView(aspect)
+    copy(
+        skeleton = NaturalPose.unplacedNatural(pose.withBody(skeleton.body).withAnchor(skeleton.anchor)),
+        selected = if (pose.isPlaced(selected)) selected else "rib",
+    ).fitView(aspect)
 
 /** 保存した体型を読み込む。ポーズ・選択・視点はそのまま(E07-03) */
 fun EditorState.loadBody(body: BodyParams): EditorState = copy(skeleton = skeleton.withBody(body))

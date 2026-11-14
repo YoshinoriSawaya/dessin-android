@@ -103,7 +103,7 @@ class AnchorTest {
     fun 根はポーズに保存しない_読み込んでもいまの根を保つ_画面の状態には残る() {
         val text = PoseCodec.encode(anchored)
         assertEquals(Anchor.CHEST, (PoseCodec.decode(text) as PoseDecodeResult.Ok).skeleton.anchor)
-        val e = EditorState(skeleton = anchored)
+        val e = EditorState(skeleton = com.yswy.dessin.core.editor.NaturalPose.unplacedNatural(anchored))
         assertEquals(Anchor.PELVIS, e.loadPose(body, 1.0).skeleton.anchor)
         assertEquals(e, EditorStateCodec.decode(EditorStateCodec.encode(e)))
     }
