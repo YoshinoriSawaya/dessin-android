@@ -86,6 +86,9 @@ data class OrbitCamera(
         return q.rotate(Vec3.X) * (dx * unit) + q.rotate(Vec3.Y) * (-dy * unit)
     }
 
+    /** 平行移動(E12)。指を (dx, dy) 動かすと、注視点の奥行きの物が指についてくるように注視点を逆へ動かす */
+    fun pan(dx: Double, dy: Double, height: Double): OrbitCamera = copy(target = target - screenDelta(target, dx, dy, height))
+
     fun viewMatrix(): Mat4 = Mat4.compose(position, rotation, 1.0).inverseRigid()
 
     fun projectionMatrix(aspect: Double): Mat4 = Mat4.perspective(FOV, aspect, NEAR, FAR)

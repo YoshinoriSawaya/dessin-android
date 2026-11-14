@@ -132,9 +132,14 @@ fun DessinScreen(start: EditorState) {
                 },
             )
             if (hintVisible && tallEnough) {
-                Text(HINT, fontSize = 12.sp, lineHeight = 19.sp, color = Palette.Muted, modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp))
+                // 右上の「カメラ」のボタンと重ならないよう、右に余白を取る
+                Text(HINT, fontSize = 12.sp, lineHeight = 19.sp, color = Palette.Muted, modifier = Modifier.padding(start = 12.dp, end = 104.dp, top = 10.dp))
             }
             if (state.options.guides) Legend(Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = 8.dp))
+            // カメラだけを操作するモード(E12)。押している間は部位を動かさず、視点だけを動かす
+            Box(Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 12.dp)) {
+                ToolChip("カメラ", pressed = state.cameraOnly) { state = state.toggleCameraOnly() }
+            }
         }
         ControlPanel(
             state, actions, Modifier.fillMaxWidth().background(Palette.Panel).navigationBarsPadding(),
