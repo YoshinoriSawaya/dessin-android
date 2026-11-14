@@ -66,7 +66,8 @@ class EditorStateTest {
         val s = initial.select("neck").select("flank").select("pelvis").let {
             it.copy(skeleton = it.skeleton.withState("neck", PartState(0.3, 1.0, 0.1)).withState("pelvis", PartState(0.2, 0.5, 0.0)))
         }.resetSelected()
-        assertEquals(PartState.rest(PartSpecs["pelvis"]), s.skeleton.state("pelvis"))
+        // E09 で、向きを戻すと自然な姿勢(まっすぐではない)に戻るようにした
+        assertEquals(NaturalPose.state(PartSpecs["pelvis"]), s.skeleton.state("pelvis"))
         assertEquals(PartState(0.3, 1.0, 0.1), s.skeleton.state("neck"))
     }
 

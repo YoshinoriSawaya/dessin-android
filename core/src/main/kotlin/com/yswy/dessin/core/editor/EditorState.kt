@@ -25,10 +25,11 @@ data class EditorState(
     val options: DisplayOptions = DisplayOptions(),
     val panelOpen: Boolean = true,
 ) {
-    /** 部位を選ぶ。置いていなければ置く。置けない部位なら何もしない(Web版の select) */
+    /** 部位を選ぶ。置いていなければ自然な姿勢(E09)で置く。置けない部位なら何もしない(Web版の select) */
     fun select(id: String): EditorState {
         if (!skeleton.isAvailable(id)) return this
-        return copy(skeleton = skeleton.place(id), selected = id)
+        if (skeleton.isPlaced(id)) return copy(selected = id)
+        return copy(skeleton = skeleton.place(id).withState(id, NaturalPose.state(PartSpecs[id])), selected = id)
     }
 
     /** 選択中の部位は外せるか(胸は外せない) */
@@ -40,8 +41,11 @@ data class EditorState(
         return copy(skeleton = skeleton.remove(selected)).select(parent)
     }
 
-    /** 選択中の部位の向きを戻す(Web版の「向きを戻す」) */
-    fun resetSelected(): EditorState = copy(skeleton = skeleton.reset(selected))
+    /** 選択中の部位の向きを戻す(Web版の「向きを戻す」)。胸は位置・回転・大きさを、ほかは自然な姿勢(E09)に戻す */
+    fun resetSelected(): EditorState {
+        val spec = PartSpecs[selected]
+        return copy(skeleton = if (spec.isRoot) skeleton.reset(selected) else skeleton.withState(selected, NaturalPose.state(spec)))
+    }
 
     fun togglePanel(): EditorState = copy(panelOpen = !panelOpen)
 
