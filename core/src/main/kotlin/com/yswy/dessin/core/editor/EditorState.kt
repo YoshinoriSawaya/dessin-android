@@ -2,6 +2,7 @@ package com.yswy.dessin.core.editor
 
 import com.yswy.dessin.core.camera.OrbitCamera
 import com.yswy.dessin.core.render.DisplayOptions
+import com.yswy.dessin.core.skeleton.BodyParams
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.Skeleton
 
@@ -44,13 +45,16 @@ data class EditorState(
         return withActive(all, i)
     }
 
-    /** 人形を足して操作中にする(10体まで)。今いる人形のいちばん右の隣に、胸だけを置いた初めの状態で置く */
-    fun addDoll(): EditorState {
+    /**
+     * 人形を足して操作中にする(10体まで)。今いる人形のいちばん右の隣に、胸だけを置いた初めの状態で置く。
+     * 体型は body(画面からは既定の体型を渡す。E07-04)
+     */
+    fun addDoll(body: BodyParams = BodyParams()): EditorState {
         val all = dolls
         if (all.size >= MAX_DOLLS) return this
         val start = NaturalPose.initial
         val x = all.maxOf { it.root.position.x } + DOLL_SPACING
-        val doll = start.withRoot(start.root.copy(position = start.root.position.copy(x = x)))
+        val doll = start.withRoot(start.root.copy(position = start.root.position.copy(x = x))).withBody(body)
         return withActive(all + doll, all.size).copy(selected = "rib")
     }
 

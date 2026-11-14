@@ -78,16 +78,18 @@ private const val HINT = "まず胸をドラッグして置き、大きさや傾
 /** 画面全体。上が3D(ヒントと凡例を重ねる)、下が操作パネル */
 @Composable
 fun DessinScreen(start: EditorState) {
-    var state by rememberSaveable(stateSaver = EditorStateSaver) { mutableStateOf(start) }
+    // 名前を付けて保存したポーズと体型(体型はポーズと別に保存する。E07-03)と、既定の体型(E07-04)
+    val context = LocalContext.current
+    val poses = remember { Shelf.poses(context) }
+    val bodies = remember { Shelf.bodies(context) }
+    val defaultBody = remember { DefaultBodyShelf(context) }
+    // 起動したときは既定の体型で始める(E07-04)。画面の作り直しのあとは保存した状態に戻す
+    var state by rememberSaveable(stateSaver = EditorStateSaver) { mutableStateOf(start.loadBody(defaultBody.body())) }
     // ヒントは 3D に最初に触ったら消す。画面が低ければ最初から出さない(Web版の max-height:620px)
     var hintVisible by rememberSaveable { mutableStateOf(true) }
     val tallEnough = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() } > 620.dp
     // 全体を表示に使う 3D の画面の縦横比
     var aspect by remember { mutableDoubleStateOf(1.0) }
-    // 名前を付けて保存したポーズと体型(体型はポーズと別に保存する。E07-03)
-    val context = LocalContext.current
-    val poses = remember { Shelf.poses(context) }
-    val bodies = remember { Shelf.bodies(context) }
     var dialog by remember { mutableStateOf<PoseDialog?>(null) }
     // 人形を消す前の確認(E13-02)
     var confirmRemoveDoll by remember { mutableStateOf(false) }
@@ -103,7 +105,7 @@ fun DessinScreen(start: EditorState) {
         onSex = { sex -> state = state.setSex(sex) },
         onAnchor = { anchor -> state = state.setAnchor(anchor) },
         onSwitchDoll = { i -> state = state.switchDoll(i) },
-        onAddDoll = { state = state.addDoll().fitView(aspect) },
+        onAddDoll = { state = state.addDoll(defaultBody.body()).fitView(aspect) },
         onRemoveDoll = { confirmRemoveDoll = true },
     )
 
@@ -173,7 +175,8 @@ fun DessinScreen(start: EditorState) {
             },
             bodyTools = {
                 ToolChip("名前を付けて保存") { dialog = PoseDialog.Save(SaveKind.BODY, bodies.suggestName()) }
-                ToolChip("保存した体型") { bodies.list()?.let { dialog = PoseDialog.List(SaveKind.BODY, it) } }
+                ToolChip("保存した体型") { bodies.list()?.let { dialog = PoseDialog.List(SaveKind.BODY, it, defaultBody.id()) } }
+                ToolChip("既定の体型に戻す") { state = state.loadBody(defaultBody.body()) }
             },
         )
     }
@@ -224,10 +227,16 @@ fun DessinScreen(start: EditorState) {
                     dialog = poses.list()?.let { PoseDialog.List(d.kind, it) }
                 } else {
                     bodies.delete(id)
-                    dialog = bodies.list()?.let { PoseDialog.List(d.kind, it) }
+                    defaultBody.forget(id)
+                    dialog = bodies.list()?.let { PoseDialog.List(d.kind, it, defaultBody.id()) }
                 }
             },
             onDismiss = { dialog = null },
+            defaultId = d.defaultId,
+            onToggleDefault = if (d.kind == SaveKind.BODY) { item ->
+                if (item.id == d.defaultId) defaultBody.clear() else defaultBody.set(item)
+                dialog = d.copy(defaultId = defaultBody.id())
+            } else null,
         )
         null -> Unit
     }
