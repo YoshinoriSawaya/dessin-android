@@ -220,4 +220,5 @@ private fun Display.label() = when (this) {
     Display.LINES -> "正中線"
     Display.MARKERS -> "関節の玉"
     Display.GRID -> "格子"
+    Display.SHADOWS -> "影"
 }

@@ -7,13 +7,14 @@ import com.yswy.dessin.core.skeleton.BodyParams
 import com.yswy.dessin.core.skeleton.Skeleton
 
 /** 表示の切替(Web版の「ガイド」「正中線」「関節の玉」「格子」のチップ) */
-enum class Display { GUIDES, LINES, MARKERS, GRID }
+enum class Display { GUIDES, LINES, MARKERS, GRID, SHADOWS }
 
 fun EditorState.isOn(d: Display): Boolean = when (d) {
     Display.GUIDES -> options.guides
     Display.LINES -> options.lines
     Display.MARKERS -> options.markers
     Display.GRID -> options.grid
+    Display.SHADOWS -> options.shadows
 }
 
 fun EditorState.toggle(d: Display): EditorState = copy(
@@ -22,6 +23,7 @@ fun EditorState.toggle(d: Display): EditorState = copy(
         Display.LINES -> options.copy(lines = !options.lines)
         Display.MARKERS -> options.copy(markers = !options.markers)
         Display.GRID -> options.copy(grid = !options.grid)
+        Display.SHADOWS -> options.copy(shadows = !options.shadows)
     },
 )
 
