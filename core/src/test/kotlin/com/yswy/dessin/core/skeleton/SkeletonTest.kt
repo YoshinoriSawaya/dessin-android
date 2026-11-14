@@ -119,7 +119,7 @@ class SkeletonTest {
         assertVec(ribPos + Vec3(0.0, 0.12, -0.025), w.getValue("clavL").position)
         val big = initial.withRoot(initial.root.copy(scale = 2.0)).worldTransforms()
         assertVec(ribPos + Vec3(0.0, 0.30, -0.07), big.getValue("neck").position)
-        assertEquals(2.0, big.getValue("head").scale, EPS)
+        assertEquals(2.0 * 0.7, big.getValue("head").scale, EPS) // 頭は自身の基準 0.7 も掛かる(E07-01)
     }
 
     @Test
@@ -142,7 +142,7 @@ class SkeletonTest {
     fun 体型の調整が関節の位置と拡大率に効く() {
         val w = initial.withBody(BodyParams(headSize = 1.5, shoulderWidth = 1.5)).worldTransforms()
         assertVec(ribPos + Vec3(0.025 + 0.18, 0.12, 0.0), w.getValue("upperArmL").position)
-        assertEquals(1.5, w.getValue("head").scale, EPS)
+        assertEquals(1.5 * 0.7, w.getValue("head").scale, EPS) // 頭は基準 0.7 に倍率が掛かる(E07-01)
         assertEquals(1.0, w.getValue("neck").scale, EPS)
     }
 

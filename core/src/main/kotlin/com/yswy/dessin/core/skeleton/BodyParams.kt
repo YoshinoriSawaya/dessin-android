@@ -8,7 +8,7 @@ import kotlin.math.sign
  * 体型の調整パラメータ。値の範囲は Web版のスライダーと同じ(UI 側で範囲内に収める)。
  * メッシュの拡大(肩や骨盤の見た目の幅)は描画層が持ち、ここでは骨格の位置と拡大率だけを扱う。
  *
- * @property headSize 頭の大きさ(倍率)
+ * @property headSize 頭の大きさ(倍率。基準 HEAD_BASE_SCALE に対する倍率)
  * @property shoulderWidth 肩幅(倍率、左右共通)
  * @property pelvisWidth 骨盤の横幅(倍率)
  * @property hipInset 付け根の内寄り。骨盤の外縁から股関節までの距離
@@ -56,6 +56,9 @@ fun attachOf(spec: PartSpec, params: BodyParams): Vec3 {
     }
 }
 
-/** 関節の拡大率。頭だけが大きさを変えられる(子孫にも効く) */
+/** 頭の大きさの基準。headSize = 1.0(100%)のときの頭は、v1 の頭のこの倍率(E07-01) */
+const val HEAD_BASE_SCALE = 0.7
+
+/** 関節の拡大率。頭だけが大きさを変えられる(子孫にも効く)。倍率は HEAD_BASE_SCALE に対して掛かる */
 fun jointScale(spec: PartSpec, params: BodyParams): Double =
-    if (spec.adjust == Adjust.HEAD_SIZE) params.headSize else 1.0
+    if (spec.adjust == Adjust.HEAD_SIZE) HEAD_BASE_SCALE * params.headSize else 1.0

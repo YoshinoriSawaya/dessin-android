@@ -10,7 +10,7 @@
 | [E04](epics/E04-device-feedback.md) | 実機確認の修正 | 完了 |
 | [E05](epics/E05-chest-flank.md) | 胸と脇腹 | 完了(可動域の値は調整の余地あり) |
 | [E06](epics/E06-limb-tuning.md) | 実機確認の調整(手足) | 完了 |
-| [E07](epics/E07-body-type.md) | 体型の調整と保存 | 未着手 |
+| [E07](epics/E07-body-type.md) | 体型の調整と保存 | 進行中 |
 | [E08](epics/E08-body-shapes.md) | 体の形 | 未着手 |
 | [E09](epics/E09-default-posture.md) | 初期姿勢 | 未着手 |
 | [E10](epics/E10-controls.md) | 操作の追加 | 未着手 |
