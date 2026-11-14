@@ -61,9 +61,17 @@ class BodyParamsTest {
     }
 
     @Test
+    fun 頭の大きさの基準はv1の70パーセント() {
+        // E07-01: 100% のときの頭は v1 の頭の 0.7 倍
+        assertEquals(0.7, HEAD_BASE_SCALE, EPS)
+        assertEquals(0.7, jointScale(PartSpecs["head"], default), EPS)
+    }
+
+    @Test
     fun 頭の大きさは頭の関節の拡大率() {
+        // 倍率は基準(HEAD_BASE_SCALE)に対して掛かる(E07-01 で基準を変えたため 1.3 → 1.3 × 0.7)
         val p = default.copy(headSize = 1.3)
-        assertEquals(1.3, jointScale(PartSpecs["head"], p), EPS)
+        assertEquals(1.3 * 0.7, jointScale(PartSpecs["head"], p), EPS)
         PartSpecs.all.filterNot { it.id == "head" }.forEach { assertEquals(it.id, 1.0, jointScale(it, p), EPS) }
     }
 }
