@@ -1,5 +1,7 @@
 package com.yswy.dessin.ui
 
+import com.yswy.dessin.core.editor.loadScene
+import com.yswy.dessin.core.pose.SavedItem
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import com.yswy.dessin.core.editor.wheelZoom
@@ -167,7 +169,7 @@ fun DessinScreen(start: EditorState) {
             },
             saveTools = {
                 ToolChip("名前を付けて保存") { dialog = PoseDialog.Save(SaveKind.POSE, poses.suggestName()) }
-                ToolChip("保存したポーズ") { poses.list()?.let { dialog = PoseDialog.List(SaveKind.POSE, it) } }
+                ToolChip("保存した場面") { poses.list()?.let { dialog = PoseDialog.List(SaveKind.POSE, it) } }
             },
             bodyTools = {
                 ToolChip("名前を付けて保存") { dialog = PoseDialog.Save(SaveKind.BODY, bodies.suggestName()) }
@@ -193,7 +195,7 @@ fun DessinScreen(start: EditorState) {
             suggestedName = d.suggestedName,
             onSave = { name ->
                 val saved = when (d.kind) {
-                    SaveKind.POSE -> poses.save(name, state.skeleton)
+                    SaveKind.POSE -> poses.save(name, SavedItem.Scene(state.dolls))
                     SaveKind.BODY -> bodies.save(name, state.skeleton.body)
                 }
                 if (saved) dialog = null
@@ -205,7 +207,14 @@ fun DessinScreen(start: EditorState) {
             items = d.items,
             onLoad = { id ->
                 when (d.kind) {
-                    SaveKind.POSE -> poses.load(id)?.let { pose -> state = state.loadPose(pose, aspect); dialog = null }
+                    SaveKind.POSE -> poses.load(id)?.let { item ->
+                        // 場面は全員を差し替え、今までの1体のポーズは操作中の人形に入れる(E13-04)
+                        state = when (item) {
+                            is SavedItem.Scene -> state.loadScene(item.dolls, aspect)
+                            is SavedItem.Pose -> state.loadPose(item.skeleton, aspect)
+                        }
+                        dialog = null
+                    }
                     SaveKind.BODY -> bodies.load(id)?.let { body -> state = state.loadBody(body); dialog = null }
                 }
             },

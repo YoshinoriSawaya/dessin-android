@@ -8,7 +8,7 @@
 - [x] [E13-01 場面のデータ(複数の人形と操作中の人形)](../tasks/E13-01-scene-model.md)
 - [x] [E13-02 人形の追加・削除・切り替え](../tasks/E13-02-doll-switch.md)
 - [x] [E13-03 複数の人形の描画とピッキング](../tasks/E13-03-multi-render.md)
-- [ ] [E13-04 場面の保存](../tasks/E13-04-scene-save.md)
+- [x] [E13-04 場面の保存](../tasks/E13-04-scene-save.md)
 
 順序: 01 → 02・03(並行できる)→ 04
 
