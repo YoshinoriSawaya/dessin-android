@@ -3,6 +3,7 @@ package com.yswy.dessin.gl
 import android.annotation.SuppressLint
 import android.content.Context
 import android.opengl.GLSurfaceView
+import android.view.InputDevice
 import android.view.MotionEvent
 
 /** 3D の画面の指のイベント。座標は View の左上を原点とする dp、width・height は View の大きさ(dp) */
@@ -11,6 +12,9 @@ interface PointerListener {
     fun onMove(id: Int, x: Double, y: Double, width: Double, height: Double)
     fun onUp(id: Int, x: Double, y: Double, time: Long, width: Double, height: Double)
     fun onCancel(id: Int)
+
+    /** マウスホイール(E12-02)。steps は上へ回した量(一刻みで 1) */
+    fun onWheel(steps: Double)
 }
 
 /** OpenGL ES 3.0 で人形を描く View。描き直すのは内容が変わったときだけ(Web版の dirty と同じ) */
@@ -55,6 +59,19 @@ class DollSurfaceView(context: Context) : GLSurfaceView(context) {
             MotionEvent.ACTION_CANCEL -> for (i in 0 until event.pointerCount) l.onCancel(event.getPointerId(i))
         }
         return true
+    }
+
+    /** マウスホイールを回したとき(E12-02) */
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        val l = pointerListener
+        if (l != null && event.isFromSource(InputDevice.SOURCE_CLASS_POINTER) && event.actionMasked == MotionEvent.ACTION_SCROLL) {
+            val steps = event.getAxisValue(MotionEvent.AXIS_VSCROLL).toDouble()
+            if (steps != 0.0) {
+                l.onWheel(steps)
+                return true
+            }
+        }
+        return super.onGenericMotionEvent(event)
     }
 
     // タップの操作は onTouchEvent で扱う。アクセシビリティのクリックは受けるだけ

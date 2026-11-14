@@ -27,6 +27,14 @@ fun EditorState.toggle(d: Display): EditorState = copy(
     },
 )
 
+/**
+ * マウスホイールで拡大縮小する(E12-02)。steps は上へ回した量(1 で一刻み、負で下へ)。
+ * 一刻みで距離を 0.9 倍(上へ回すと近づく)。視点の向き・注視点・ポーズは変えない
+ */
+fun EditorState.wheelZoom(steps: Double): EditorState = withCamera((camera ?: OrbitCamera()).zoom(Math.pow(WHEEL_STEP, steps)))
+
+private const val WHEEL_STEP = 0.9
+
 /** 視点のプリセット(正面・横・背面・上)。注視点と距離は変えない */
 fun EditorState.preset(p: ViewPreset): EditorState = withCamera((camera ?: OrbitCamera()).preset(p))
 
