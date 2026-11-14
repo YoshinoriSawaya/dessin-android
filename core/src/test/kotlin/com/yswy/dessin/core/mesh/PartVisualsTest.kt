@@ -7,7 +7,6 @@ import com.yswy.dessin.core.skeleton.BodyParams
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.Skeleton
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -76,7 +75,8 @@ class PartVisualsTest {
                 assertEquals("${s.id}:$i", expected && i == 0, changed)
             }
         }
-        assertNull(PartVisuals.meshes("rib").getOrNull(1))
+        // 胸には関節の玉が無い(E08-04 で乳房のメッシュが加わったので、2つ目の有無ではなく玉の有無を見る)
+        assertTrue(PartVisuals.meshes("rib").none { it.kind == MeshKind.MARKER })
     }
 }
 

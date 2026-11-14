@@ -1,5 +1,7 @@
 package com.yswy.dessin.ui
 
+import com.yswy.dessin.core.editor.sexChoice
+import com.yswy.dessin.core.skeleton.Sex
 import com.yswy.dessin.core.editor.handShapeChoice
 import com.yswy.dessin.core.skeleton.HandShape
 import androidx.compose.foundation.background
@@ -69,6 +71,7 @@ class PanelActions(
     val onSlider: (SliderKind, Int) -> Unit,
     val onOrb: (Quat) -> Unit,
     val onHandShape: (HandShape) -> Unit,
+    val onSex: (Sex) -> Unit,
 )
 
 /**
@@ -109,6 +112,12 @@ fun ControlPanel(
                 Group("手の形") {
                     ToolChip("パー", pressed = current == HandShape.OPEN) { actions.onHandShape(HandShape.OPEN) }
                     ToolChip("グー", pressed = current == HandShape.FIST) { actions.onHandShape(HandShape.FIST) }
+                }
+            }
+            // 骨盤を選んでいるときだけ、性別(性器の形。体型の項目)を切り替える(E08-04)
+            state.sexChoice?.let { current ->
+                Group("性別") {
+                    Sex.entries.forEach { sex -> ToolChip(sex.label, pressed = current == sex) { actions.onSex(sex) } }
                 }
             }
             Group("部位") {

@@ -7,6 +7,7 @@ import com.yswy.dessin.core.skeleton.Adjust
 import com.yswy.dessin.core.skeleton.BodyParams
 import com.yswy.dessin.core.skeleton.HandShape
 import com.yswy.dessin.core.skeleton.PartSpecs
+import com.yswy.dessin.core.skeleton.Sex
 import com.yswy.dessin.core.skeleton.Side
 import com.yswy.dessin.core.skeleton.Skeleton
 import com.yswy.dessin.core.skeleton.HIP_ROOT_X
@@ -21,13 +22,24 @@ import kotlin.math.sin
 /** 部位のメッシュの種類。描き分け(関節の玉は消せる、頭の面は色が違う)に使う */
 enum class MeshKind { BODY, MARKER, MASK }
 
+/** 体型で出し分ける体の形(E08-04)。乳房は大きさが 0 なら描かず、性器は性別の形だけを描く */
+enum class BodyFeature { BREAST, MALE, FEMALE }
+
 /**
  * 部位を形づくるメッシュ1つ。形・線・輪郭はメッシュの空間で持ち、置き方は PartVisuals.placement で得る。
  * @property edges 輪郭線(GL_LINES 用の端点の並び)。無いメッシュは null
  * @property lines 正中線・輪郭の輪の管
  * @property handShape 手の形のどちらで描くか(E08-02)。null なら常に描く
+ * @property feature 体型で出し分ける体の形(E08-04)。null なら常に描く
  */
-class PartMesh(val kind: MeshKind, val mesh: Mesh, val edges: FloatArray?, val lines: List<Mesh>, val handShape: HandShape? = null)
+class PartMesh(
+    val kind: MeshKind,
+    val mesh: Mesh,
+    val edges: FloatArray?,
+    val lines: List<Mesh>,
+    val handShape: HandShape? = null,
+    val feature: BodyFeature? = null,
+)
 
 /** メッシュの、関節の空間での置き方。拡大は軸ごと */
 data class MeshPlacement(val position: Vec3, val rotation: Quat, val scale: Vec3)
@@ -63,6 +75,8 @@ object PartVisuals {
     /** 胸と脇腹の分かれ目の半径(胸の下端) */
     private val SPLIT_R = chestRadius(CHEST_BOTTOM)
     private val QZ90 = Quat.fromAxisAngle(Vec3.Z, PI / 2)
+    /** 乳房の大きさ 1 のときの半径 */
+    private const val BREAST_R = 0.055
     private const val CHEST_ROWS = 16
 
     private class Entry(val part: PartMesh, val position: Vec3, val rotation: Quat)
@@ -78,6 +92,11 @@ object PartVisuals {
      */
     fun placement(id: String, index: Int, body: BodyParams): MeshPlacement {
         val e = table.getValue(id)[index]
+        // 乳房は大きさで拡大する(前後は少し平たく)。E08-04
+        if (e.part.feature == BodyFeature.BREAST) {
+            val s = body.breastSize
+            return MeshPlacement(e.position, e.rotation, Vec3(s, s, 0.95 * s))
+        }
         val spec = PartSpecs[id]
         val sg = if (spec.side == Side.RIGHT) -1.0 else 1.0
         if (index == 0) {
@@ -108,14 +127,24 @@ object PartVisuals {
         val sg = if (spec.side == Side.RIGHT) -1.0 else 1.0
         val base = id.removeSuffix("L").removeSuffix("R").takeIf { spec.side != null } ?: id
         val out = ArrayList<Entry>()
-        fun mk(mesh: Mesh, pos: Vec3, rot: Quat = Quat.IDENTITY, edges: Boolean, kind: MeshKind = MeshKind.BODY, lines: List<Mesh> = emptyList(), hand: HandShape? = null) {
-            out += Entry(PartMesh(kind, mesh, if (edges) edges(mesh, 30.0) else null, lines, hand), pos, rot)
+        fun mk(
+            mesh: Mesh, pos: Vec3, rot: Quat = Quat.IDENTITY, edges: Boolean, kind: MeshKind = MeshKind.BODY,
+            lines: List<Mesh> = emptyList(), hand: HandShape? = null, feature: BodyFeature? = null,
+        ) {
+            out += Entry(PartMesh(kind, mesh, if (edges) edges(mesh, 30.0) else null, lines, hand, feature), pos, rot)
         }
         fun marker(r: Double) = mk(sph(r), Vec3.ZERO, edges = false, kind = MeshKind.MARKER)
         when (base) {
             // 胸と脇腹は、もとの肋骨の錐台(上 0.115・下 0.095・高さ 0.30)を上から 6.5:3.5 で分けたもの(E05-02)
             // 胸は肋骨の形(E08-01)。輪郭を回し、前後を CHEST_DEPTH 倍に縮める。関節の空間でそのまま作る
-            "rib" -> mk(chest(), Vec3.ZERO, edges = true, lines = chestLines())
+            "rib" -> {
+                mk(chest(), Vec3.ZERO, edges = true, lines = chestLines())
+                // 乳房(E08-04)。胸の前面に左右対称に置き、大きさは置き方の拡大で変える。乳頭は線の色の小さな球
+                for (side in listOf(1.0, -1.0)) {
+                    mk(Primitives.sphere(BREAST_R, 20, 14), breastCenter(side), edges = false,
+                        lines = listOf(Primitives.sphere(0.006, 8, 6).translated(Vec3(0.0, 0.0, BREAST_R))), feature = BodyFeature.BREAST)
+                }
+            }
             "flank" -> {
                 mk(frustum(SPLIT_R, 0.095, 0.105, 0.64), Vec3(0.0, -0.0525, 0.035), edges = true, lines = frustumLines(SPLIT_R, 0.095, 0.105, 0.64, listOf(0.0275)))
                 marker(0.04)
@@ -132,6 +161,9 @@ object PartVisuals {
             "pelvis" -> {
                 mk(frustum(0.10, 0.12, 0.14, 0.68), Vec3(0.0, -0.07, 0.035), edges = true, lines = frustumLines(0.10, 0.12, 0.14, 0.68, listOf(0.0)))
                 marker(0.04)
+                // 性器(E08-04)。骨盤の前の下、中央。男は小さな膨らみ、女は下向きの三角の面
+                mk(Primitives.sphere(0.028, 16, 12).scaled(0.9, 1.2, 0.75), Vec3(0.0, -0.135, 0.115), edges = false, feature = BodyFeature.MALE)
+                mk(Primitives.cylinder(0.03, 0.03, 0.004, 3), Vec3(0.0, -0.105, 0.1152), Quat.fromAxisAngle(Vec3.X, PI / 2), edges = true, feature = BodyFeature.FEMALE)
             }
             "clav" -> mk(cyl(0.022, 0.12), Vec3(sg * 0.06, 0.0, 0.0), QZ90, edges = true, lines = cylLines(0.022, 0.12, ring = false))
             "upperArm" -> { mk(cyl(0.032, 0.24), Vec3(0.0, -0.125, 0.0), edges = true, lines = cylLines(0.032, 0.24, ring = true)); marker(0.045) }
@@ -208,6 +240,29 @@ object PartVisuals {
         add(tube((0 until 48).map { val t = it / 48.0 * 2 * PI; Vec3(r * cos(t), ringY, CHEST_DEPTH * r * sin(t)) }, closed = true))
     }
 
+    /** 乳房の中心(胸の関節の空間)。胸の前面の、y = 0.055・横 0.06 の点 */
+    private fun breastCenter(side: Double): Vec3 {
+        val y = 0.055
+        val x = 0.06
+        val r = chestRadius(y)
+        return Vec3(side * x, y, CHEST_DEPTH * kotlin.math.sqrt(r * r - x * x))
+    }
+
+    /**
+     * このメッシュを今の骨格で描くか。手は今の形のものだけ(E08-02)、乳房は大きさが 0 でないとき、
+     * 性器は今の性別の形だけ(E08-04)
+     */
+    fun isShown(id: String, index: Int, skeleton: Skeleton): Boolean {
+        val pm = table.getValue(id)[index].part
+        if (pm.handShape != null && pm.handShape != skeleton.handShape(id)) return false
+        return when (pm.feature) {
+            null -> true
+            BodyFeature.BREAST -> skeleton.body.breastSize > 0.0
+            BodyFeature.MALE -> skeleton.body.sex == Sex.MALE
+            BodyFeature.FEMALE -> skeleton.body.sex == Sex.FEMALE
+        }
+    }
+
     private fun headLines(r: Double) = listOf(tube(circle(r, xz = false), closed = true), tube(circle(r, xz = true), closed = true))
 
     /** 顔の面の縦と横の線 */
@@ -235,7 +290,7 @@ fun fitBounds(skeleton: Skeleton): Pair<Vec3, Vec3>? {
     var hi: Vec3? = null
     skeleton.placed.forEach { id ->
         PartVisuals.meshes(id).forEachIndexed { i, pm ->
-            if (pm.handShape != null && pm.handShape != skeleton.handShape(id)) return@forEachIndexed
+            if (!PartVisuals.isShown(id, i, skeleton)) return@forEachIndexed
             val m = meshWorldMatrix(skeleton, id, i)
             (listOf(pm.mesh) + pm.lines).mapNotNull { it.bounds() }.forEach { (a, b) ->
                 for (corner in 0 until 8) {

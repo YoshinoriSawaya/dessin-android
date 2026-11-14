@@ -39,6 +39,17 @@ class Mesh(val positions: FloatArray, val normals: FloatArray, val indices: IntA
         return Mesh(p, n, indices)
     }
 
+    /** 平行移動した形(法線は変わらない) */
+    fun translated(d: Vec3): Mesh {
+        val p = FloatArray(positions.size)
+        for (i in 0 until vertexCount) {
+            p[i * 3] = (positions[i * 3] + d.x).toFloat()
+            p[i * 3 + 1] = (positions[i * 3 + 1] + d.y).toFloat()
+            p[i * 3 + 2] = (positions[i * 3 + 2] + d.z).toFloat()
+        }
+        return Mesh(p, normals, indices)
+    }
+
     /** 頂点を囲む箱 (最小, 最大)。頂点が無ければ null */
     fun bounds(): Pair<Vec3, Vec3>? {
         if (vertexCount == 0) return null

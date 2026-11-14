@@ -42,8 +42,8 @@ fun drawPlan(skeleton: Skeleton, selected: String, options: DisplayOptions): Dra
     PartSpecs.all.forEach { spec ->
         val id = spec.id
         PartVisuals.meshes(id).forEachIndexed { i, pm ->
-            // 手は今の形のメッシュだけを描く(E08-02)
-            if (pm.handShape != null && pm.handShape != skeleton.handShape(id)) return@forEachIndexed
+            // 手は今の形、乳房・性器は体型に合うものだけを描く(E08-02・E08-04)
+            if (!PartVisuals.isShown(id, i, skeleton)) return@forEachIndexed
             when {
                 skeleton.isPlaced(id) -> {
                     if (pm.kind == MeshKind.MARKER && !options.markers) return@forEachIndexed
