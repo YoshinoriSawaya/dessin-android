@@ -1,5 +1,6 @@
 package com.yswy.dessin.core.editor
 
+import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.camera.OrbitCamera
 import com.yswy.dessin.core.camera.ViewPreset
 import com.yswy.dessin.core.mesh.fitBounds
@@ -41,7 +42,11 @@ fun EditorState.preset(p: ViewPreset): EditorState = withCamera((camera ?: Orbit
 /** 置いた部位全体が入るように注視点と距離を決める(Web版の「全体を表示」)。aspect は 3D の画面の幅 / 高さ */
 fun EditorState.fitView(aspect: Double): EditorState {
     val cam = camera ?: OrbitCamera()
-    val (lo, hi) = fitBounds(skeleton) ?: return withCamera(cam)
+    // すべての人形が入るようにする(E13)
+    val boxes = dolls.mapNotNull { fitBounds(it) }
+    if (boxes.isEmpty()) return withCamera(cam)
+    val lo = boxes.map { it.first }.reduce { a, b -> Vec3(minOf(a.x, b.x), minOf(a.y, b.y), minOf(a.z, b.z)) }
+    val hi = boxes.map { it.second }.reduce { a, b -> Vec3(maxOf(a.x, b.x), maxOf(a.y, b.y), maxOf(a.z, b.z)) }
     return withCamera(cam.fit(lo, hi, aspect))
 }
 

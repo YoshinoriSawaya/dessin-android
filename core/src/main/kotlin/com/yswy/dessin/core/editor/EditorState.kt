@@ -18,6 +18,9 @@ data class PartChip(val id: String, val label: String, val look: ChipLook) {
  * @property camera 視点。画面の大きさが分かって全体を表示するまでは null
  * @property panelOpen 操作パネルを開いているか(Web版の折りたたみ)
  * @property cameraOnly カメラだけを操作するモード(E12)。指の操作で部位を動かさず、選ばない
+ * @property skeleton 操作中の人形(E13 で複数の人形を置けるようにした。今までの操作はすべて操作中の人形に効く)
+ * @property others 操作中でない人形(場面での並び順。操作中の人形は activeDoll 番目に入る)
+ * @property activeDoll 操作中の人形が場面の何番目か
  */
 data class EditorState(
     val skeleton: Skeleton = NaturalPose.initial,
@@ -26,7 +29,47 @@ data class EditorState(
     val options: DisplayOptions = DisplayOptions(),
     val panelOpen: Boolean = true,
     val cameraOnly: Boolean = false,
+    val others: List<Skeleton> = emptyList(),
+    val activeDoll: Int = 0,
 ) {
+    /** 場面のすべての人形(並び順。activeDoll 番目が操作中) */
+    val dolls: List<Skeleton> get() = others.take(activeDoll) + skeleton + others.drop(activeDoll)
+
+    /** i 番目の人形を操作中にする。選んでいた部位がその人形に無ければ胸を選ぶ。範囲外や今の人形なら何もしない */
+    fun switchDoll(i: Int): EditorState {
+        val all = dolls
+        if (i !in all.indices || i == activeDoll) return this
+        return withActive(all, i)
+    }
+
+    /** 人形を足して操作中にする(10体まで)。今いる人形のいちばん右の隣に、胸だけを置いた初めの状態で置く */
+    fun addDoll(): EditorState {
+        val all = dolls
+        if (all.size >= MAX_DOLLS) return this
+        val start = NaturalPose.initial
+        val x = all.maxOf { it.root.position.x } + DOLL_SPACING
+        val doll = start.withRoot(start.root.copy(position = start.root.position.copy(x = x)))
+        return withActive(all + doll, all.size).copy(selected = "rib")
+    }
+
+    /** 操作中の人形を消し、前の人形を操作中にする。最後の1体は消せない */
+    fun removeDoll(): EditorState {
+        val all = dolls
+        if (all.size <= 1) return this
+        val rest = all.filterIndexed { i, _ -> i != activeDoll }
+        return withActive(rest, maxOf(0, activeDoll - 1))
+    }
+
+    private fun withActive(all: List<Skeleton>, i: Int): EditorState {
+        val target = all[i]
+        return copy(
+            skeleton = target,
+            others = all.filterIndexed { j, _ -> j != i },
+            activeDoll = i,
+            selected = if (target.isPlaced(selected)) selected else "rib",
+        )
+    }
+
     /** 部位を選ぶ。置いていなければ自然な姿勢(E09)で置く。置けない部位なら何もしない(Web版の select) */
     fun select(id: String): EditorState {
         if (!skeleton.isAvailable(id)) return this
@@ -95,3 +138,9 @@ data class EditorState(
         )
     }
 }
+
+/** 場面に置ける人形の数(E13) */
+const val MAX_DOLLS = 10
+
+/** 人形を足すときの横の間隔 */
+private const val DOLL_SPACING = 0.6
