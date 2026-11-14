@@ -58,7 +58,8 @@ object PartSpecs {
         hinge: Hinge? = null, ref: Vec3 = Vec3.Z, adjust: Adjust? = null, pivot: Vec3 = Vec3.ZERO,
     ): PartSpec {
         val right = side == Side.RIGHT
-        fun mx(p: Vec3) = if (right) Vec3(-p.x, p.y, p.z) else p
+        // 0.0 を反転すると -0.0 になり、0 との比較で別物と判定されるので、0 から引いて反転する(2026-11-14 の不具合)
+        fun mx(p: Vec3) = if (right) Vec3(0.0 - p.x, p.y, p.z) else p
         return PartSpec(
             id, label, parent, side, mx(attach), mx(restDir), ref, length, guideRadius,
             if (right) cone?.mirrored() else cone, hinge, if (right) roll.mirrored() else roll, adjust, mx(pivot),
