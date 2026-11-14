@@ -5,6 +5,7 @@ import com.yswy.dessin.core.math.Quat
 import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.skeleton.Adjust
 import com.yswy.dessin.core.skeleton.BodyParams
+import com.yswy.dessin.core.skeleton.HandShape
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.Side
 import com.yswy.dessin.core.skeleton.Skeleton
@@ -24,8 +25,9 @@ enum class MeshKind { BODY, MARKER, MASK }
  * 部位を形づくるメッシュ1つ。形・線・輪郭はメッシュの空間で持ち、置き方は PartVisuals.placement で得る。
  * @property edges 輪郭線(GL_LINES 用の端点の並び)。無いメッシュは null
  * @property lines 正中線・輪郭の輪の管
+ * @property handShape 手の形のどちらで描くか(E08-02)。null なら常に描く
  */
-class PartMesh(val kind: MeshKind, val mesh: Mesh, val edges: FloatArray?, val lines: List<Mesh>)
+class PartMesh(val kind: MeshKind, val mesh: Mesh, val edges: FloatArray?, val lines: List<Mesh>, val handShape: HandShape? = null)
 
 /** メッシュの、関節の空間での置き方。拡大は軸ごと */
 data class MeshPlacement(val position: Vec3, val rotation: Quat, val scale: Vec3)
@@ -106,8 +108,8 @@ object PartVisuals {
         val sg = if (spec.side == Side.RIGHT) -1.0 else 1.0
         val base = id.removeSuffix("L").removeSuffix("R").takeIf { spec.side != null } ?: id
         val out = ArrayList<Entry>()
-        fun mk(mesh: Mesh, pos: Vec3, rot: Quat = Quat.IDENTITY, edges: Boolean, kind: MeshKind = MeshKind.BODY, lines: List<Mesh> = emptyList()) {
-            out += Entry(PartMesh(kind, mesh, if (edges) edges(mesh, 30.0) else null, lines), pos, rot)
+        fun mk(mesh: Mesh, pos: Vec3, rot: Quat = Quat.IDENTITY, edges: Boolean, kind: MeshKind = MeshKind.BODY, lines: List<Mesh> = emptyList(), hand: HandShape? = null) {
+            out += Entry(PartMesh(kind, mesh, if (edges) edges(mesh, 30.0) else null, lines, hand), pos, rot)
         }
         fun marker(r: Double) = mk(sph(r), Vec3.ZERO, edges = false, kind = MeshKind.MARKER)
         when (base) {
@@ -135,10 +137,13 @@ object PartVisuals {
             "upperArm" -> { mk(cyl(0.032, 0.24), Vec3(0.0, -0.125, 0.0), edges = true, lines = cylLines(0.032, 0.24, ring = true)); marker(0.045) }
             "forearm" -> { mk(cyl(0.028, 0.22), Vec3(0.0, -0.11, 0.0), edges = true, lines = cylLines(0.028, 0.22, ring = true)); marker(0.036) }
             "hand" -> {
-                // 平たい面が体側を向くように縦軸まわりに 90° 回す(E06-01)
+                // 平たい面が体側を向くように縦軸まわりに 90° 回す(E06-01)。パーの手のひら
                 mk(Primitives.box(0.062, 0.09, 0.024), Vec3(0.0, -0.05, 0.0), Quat.fromAxisAngle(Vec3.Y, PI / 2), edges = true,
-                    lines = listOf(tube(listOf(Vec3(0.0, -0.045, 0.012 + LE), Vec3(0.0, 0.045, 0.012 + LE)), closed = false)))
+                    lines = listOf(tube(listOf(Vec3(0.0, -0.045, 0.012 + LE), Vec3(0.0, 0.045, 0.012 + LE)), closed = false)), hand = HandShape.OPEN)
                 marker(0.026)
+                // パーの指と親指(E08-02)。グーはブロックと親指。親指は前(+z)、手のひらは体側(−sg·x)
+                mk(HandMeshes.openFingers(sg), Vec3.ZERO, edges = true, hand = HandShape.OPEN)
+                mk(HandMeshes.fist(sg), Vec3.ZERO, edges = true, hand = HandShape.FIST)
             }
             "hip" -> mk(Primitives.cylinder(0.045, 0.045, 0.05, 20), Vec3(sg * 0.025, 0.0, 0.0), QZ90, edges = true)
             "thigh" -> { mk(cyl(0.052, 0.39), Vec3(0.0, -0.2, 0.0), edges = true, lines = cylLines(0.052, 0.39, ring = true)); marker(0.055) }
@@ -222,6 +227,7 @@ fun fitBounds(skeleton: Skeleton): Pair<Vec3, Vec3>? {
     var hi: Vec3? = null
     skeleton.placed.forEach { id ->
         PartVisuals.meshes(id).forEachIndexed { i, pm ->
+            if (pm.handShape != null && pm.handShape != skeleton.handShape(id)) return@forEachIndexed
             val m = meshWorldMatrix(skeleton, id, i)
             (listOf(pm.mesh) + pm.lines).mapNotNull { it.bounds() }.forEach { (a, b) ->
                 for (corner in 0 until 8) {

@@ -1,5 +1,7 @@
 package com.yswy.dessin.ui
 
+import com.yswy.dessin.core.editor.handShapeChoice
+import com.yswy.dessin.core.skeleton.HandShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -66,6 +68,7 @@ class PanelActions(
     val onTogglePanel: () -> Unit,
     val onSlider: (SliderKind, Int) -> Unit,
     val onOrb: (Quat) -> Unit,
+    val onHandShape: (HandShape) -> Unit,
 )
 
 /**
@@ -100,6 +103,13 @@ fun ControlPanel(
                     state.sliders.forEach { SliderRow(it, actions.onSlider) }
                 }
                 OrbView(state, actions.onOrb)
+            }
+            // 手を選んでいるときだけ、グーとパーを切り替える(E08-02)
+            state.handShapeChoice?.let { current ->
+                Group("手の形") {
+                    ToolChip("パー", pressed = current == HandShape.OPEN) { actions.onHandShape(HandShape.OPEN) }
+                    ToolChip("グー", pressed = current == HandShape.FIST) { actions.onHandShape(HandShape.FIST) }
+                }
             }
             Group("部位") {
                 state.partChips.forEachIndexed { i, group ->

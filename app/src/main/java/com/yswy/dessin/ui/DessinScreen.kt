@@ -1,5 +1,6 @@
 package com.yswy.dessin.ui
 
+import com.yswy.dessin.core.editor.setHandShape
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -89,6 +90,7 @@ fun DessinScreen(start: EditorState) {
         onTogglePanel = { state = state.togglePanel() },
         onSlider = { kind, value -> state = state.applySlider(kind, value) },
         onOrb = { q -> state = state.applyOrb(q) },
+        onHandShape = { shape -> state = state.setHandShape(shape) },
     )
 
     // 指の操作の途中の状態。画面にひとつ

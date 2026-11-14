@@ -5,7 +5,7 @@
 
 ## タスク
 - [x] [E08-01 胸を肋骨の形にする](../tasks/E08-01-chest-ribcage.md)
-- [ ] [E08-02 手の形(グーとパー、親指側)](../tasks/E08-02-hand-shape.md)
+- [x] [E08-02 手の形(グーとパー、親指側)](../tasks/E08-02-hand-shape.md)
 - [ ] [E08-03 足のかかとと指](../tasks/E08-03-foot.md)
 - [ ] [E08-04 乳房・性器の目印](../tasks/E08-04-landmarks.md)
 

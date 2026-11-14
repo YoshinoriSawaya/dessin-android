@@ -3,11 +3,13 @@ package com.yswy.dessin.core.pose
 import com.yswy.dessin.core.math.Quat
 import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.skeleton.BodyParams
+import com.yswy.dessin.core.skeleton.HandShape
 import com.yswy.dessin.core.skeleton.PartSpec
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.PartState
 import com.yswy.dessin.core.skeleton.RootTransform
 import com.yswy.dessin.core.skeleton.Skeleton
+import com.yswy.dessin.core.skeleton.isHand
 import com.yswy.dessin.core.skeleton.phiMax
 import kotlin.math.abs
 import kotlin.math.sqrt
@@ -26,6 +28,7 @@ sealed interface PoseDecodeResult {
  * dessin-pose 3
  * root <px> <py> <pz> <qx> <qy> <qz> <qw> <scale>
  * part <id> <置いたか 0|1> <phi> <psi> <roll>
+ * hand <handL|handR> <open|fist>      ← 手の形(E08-02)。無ければパー
  * ```
  *
  * 読み込みでは、形式の誤りはエラーにし、値は範囲に収める(可動域、体型と胸の大きさの範囲、回転の正規化)。
@@ -48,6 +51,7 @@ object PoseCodec {
             val placed = if (skeleton.isPlaced(spec.id)) 1 else 0
             appendLine(listOf("part", spec.id, placed, s.phi, s.psi, s.roll).joinToString(" "))
         }
+        PartSpecs.all.filter { isHand(it.id) }.forEach { appendLine("hand ${it.id} ${skeleton.handShape(it.id).code}") }
     }
 
     fun decode(text: String): PoseDecodeResult = try {
@@ -69,6 +73,7 @@ object PoseCodec {
         var body = BodyParams()
         val flagged = mutableSetOf<String>()
         val states = mutableMapOf<String, PartState>()
+        val hands = mutableMapOf<String, HandShape>()
         for (line in lines.drop(1)) {
             val t = line.split(WS)
             when (t[0]) {
@@ -100,6 +105,11 @@ object PoseCodec {
                     if (flag) flagged += spec.id
                     states[spec.id] = clamp(spec, PartState(n[0], n[1], n[2]))
                 }
+                "hand" -> {
+                    if (t.size != 3) throw PoseFormatException("項目の数が違う: $line")
+                    val shape = HandShape.ofCode(t[2]) ?: throw PoseFormatException("知らない手の形: $line")
+                    if (isHand(t[1])) hands[t[1]] = shape
+                }
                 else -> throw PoseFormatException("知らない行: $line")
             }
         }
@@ -113,6 +123,8 @@ object PoseCodec {
                 skeleton = skeleton.place(spec.id).withState(spec.id, states[spec.id] ?: PartState.rest(spec))
             }
         }
+        // 手の形は置いた手だけに残す(外した手はパー)
+        hands.forEach { (id, shape) -> if (skeleton.isPlaced(id)) skeleton = skeleton.withHandShape(id, shape) }
         return skeleton
     }
 
