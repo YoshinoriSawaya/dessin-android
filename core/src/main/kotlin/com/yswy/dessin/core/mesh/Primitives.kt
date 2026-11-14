@@ -8,7 +8,7 @@ import kotlin.math.sqrt
 
 /**
  * 基本の形。頂点の並びと三角形の向きは three.js r128 の BoxGeometry・CylinderGeometry・SphereGeometry と同じ
- * (MeshGoldenTest で照合する)。分割は1段だけ、uv は使わないので作らない。
+ * (v1 で Web版と照合した)。分割は1段だけ、uv は使わないので作らない。
  */
 object Primitives {
     /** 中心が原点の箱(BoxGeometry(width, height, depth)) */
