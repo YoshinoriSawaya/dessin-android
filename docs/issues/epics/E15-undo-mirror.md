@@ -5,7 +5,7 @@
 
 ## タスク
 - [x] [E15-01 Undo と Redo](../tasks/E15-01-undo.md)
-- [ ] [E15-02 左右対称のコピー](../tasks/E15-02-mirror-copy.md)
+- [x] [E15-02 左右対称のコピー](../tasks/E15-02-mirror-copy.md)
 
 順序: 01 → 02(コピーも Undo で戻せるようにするため)
 

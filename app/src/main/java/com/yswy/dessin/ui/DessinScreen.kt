@@ -54,6 +54,7 @@ import com.yswy.dessin.core.editor.fitView
 import com.yswy.dessin.core.editor.isOn
 import com.yswy.dessin.core.editor.loadBody
 import com.yswy.dessin.core.editor.UndoHistory
+import com.yswy.dessin.core.editor.mirrorSelected
 import com.yswy.dessin.core.editor.fadeOthers
 import com.yswy.dessin.core.editor.loadPose
 import com.yswy.dessin.core.editor.preset
@@ -108,6 +109,7 @@ fun DessinScreen(start: EditorState) {
         onSelect = { state = state.select(it) },
         onReset = { state = state.resetSelected() },
         onRemove = { state = state.removeSelected() },
+        onMirror = { state = state.mirrorSelected() },
         onTogglePanel = { state = state.togglePanel() },
         onSlider = { kind, value -> beginEdit(); state = state.applySlider(kind, value) },
         onOrb = { q -> beginEdit(); state = state.applyOrb(q) },
