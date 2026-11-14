@@ -36,9 +36,32 @@ data class MeshPlacement(val position: Vec3, val rotation: Quat, val scale: Vec3
  */
 object PartVisuals {
     private const val LE = 0.0025
-    /** 胸と脇腹の分かれ目の半径(もとの肋骨の錐台を下から 0.105 の高さで切った半径) */
-    private const val SPLIT_R = 0.095 + (0.115 - 0.095) * (0.105 / 0.30)
+    /** 胸の前後の厚みの、横幅に対する比 */
+    private const val CHEST_DEPTH = 0.64
+    /** 胸の下端(みぞおちの高さ、胸の関節の空間で y = −0.045)と上端(0.15) */
+    private const val CHEST_BOTTOM = -0.045
+    private const val CHEST_TOP = 0.15
+    /** 胸が最も広い高さと、その半径 */
+    private const val CHEST_WIDEST_Y = 0.03
+    private const val CHEST_WIDEST_R = 0.12
+
+    /**
+     * 胸の輪郭の半径(E08-01)。肋骨のように、中ほど(y = 0.03)で最も広く、上(0.085)と下(0.106)へ狭まる。
+     * 上下それぞれ放物線で、最も広い高さでなめらかにつなぐ。
+     */
+    internal fun chestRadius(y: Double): Double =
+        if (y >= CHEST_WIDEST_Y) {
+            val t = (y - CHEST_WIDEST_Y) / (CHEST_TOP - CHEST_WIDEST_Y)
+            CHEST_WIDEST_R - 0.035 * t * t
+        } else {
+            val t = (CHEST_WIDEST_Y - y) / (CHEST_WIDEST_Y - CHEST_BOTTOM)
+            CHEST_WIDEST_R - 0.014 * t * t
+        }
+
+    /** 胸と脇腹の分かれ目の半径(胸の下端) */
+    private val SPLIT_R = chestRadius(CHEST_BOTTOM)
     private val QZ90 = Quat.fromAxisAngle(Vec3.Z, PI / 2)
+    private const val CHEST_ROWS = 16
 
     private class Entry(val part: PartMesh, val position: Vec3, val rotation: Quat)
 
@@ -89,7 +112,8 @@ object PartVisuals {
         fun marker(r: Double) = mk(sph(r), Vec3.ZERO, edges = false, kind = MeshKind.MARKER)
         when (base) {
             // 胸と脇腹は、もとの肋骨の錐台(上 0.115・下 0.095・高さ 0.30)を上から 6.5:3.5 で分けたもの(E05-02)
-            "rib" -> mk(frustum(0.115, SPLIT_R, 0.195, 0.64), Vec3(0.0, 0.0525, 0.0), edges = true, lines = frustumLines(0.115, SPLIT_R, 0.195, 0.64, listOf(0.0075)))
+            // 胸は肋骨の形(E08-01)。輪郭を回し、前後を CHEST_DEPTH 倍に縮める。関節の空間でそのまま作る
+            "rib" -> mk(chest(), Vec3.ZERO, edges = true, lines = chestLines())
             "flank" -> {
                 mk(frustum(SPLIT_R, 0.095, 0.105, 0.64), Vec3(0.0, -0.0525, 0.035), edges = true, lines = frustumLines(SPLIT_R, 0.095, 0.105, 0.64, listOf(0.0275)))
                 marker(0.04)
@@ -151,6 +175,24 @@ object PartVisuals {
             val r = rad(y) + LE
             add(tube((0 until 48).map { val t = it / 48.0 * 2 * PI; Vec3(r * cos(t), y, k * r * sin(t)) }, closed = true))
         }
+    }
+
+    /** 胸の輪郭の点(下から上へ) */
+    private fun chestProfile(): List<Pair<Double, Double>> = (0..CHEST_ROWS).map { i ->
+        val y = CHEST_BOTTOM + (CHEST_TOP - CHEST_BOTTOM) * i / CHEST_ROWS
+        y to chestRadius(y)
+    }
+
+    private fun chest(): Mesh = Primitives.lathe(chestProfile(), 28).scaled(1.0, 1.0, CHEST_DEPTH)
+
+    /** 前後の縦線(輪郭に沿う)と、y = 0.06 の輪(もとの肋骨の輪の高さ) */
+    private fun chestLines(): List<Mesh> = buildList {
+        val profile = chestProfile()
+        add(tube(profile.map { (y, r) -> Vec3(0.0, y, CHEST_DEPTH * r + LE) }, closed = false))
+        add(tube(profile.map { (y, r) -> Vec3(0.0, y, -CHEST_DEPTH * r - LE) }, closed = false))
+        val ringY = 0.06
+        val r = chestRadius(ringY) + LE
+        add(tube((0 until 48).map { val t = it / 48.0 * 2 * PI; Vec3(r * cos(t), ringY, CHEST_DEPTH * r * sin(t)) }, closed = true))
     }
 
     private fun headLines(r: Double) = listOf(tube(circle(r, xz = false), closed = true), tube(circle(r, xz = true), closed = true))
