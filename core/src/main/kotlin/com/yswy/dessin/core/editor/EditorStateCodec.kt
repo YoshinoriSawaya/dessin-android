@@ -20,6 +20,8 @@ import com.yswy.dessin.core.render.DisplayOptions
  * cameraonly <0|1>              ← E12。無ければ 0
  * bodytype <BodyCodec の1行>   ← E07-02。無ければポーズの体型のまま
  * anchor <rib|pelvis>          ← E10-01。無ければ胸
+ * active <操作中の人形の番号>     ← E13。無ければ 0
+ * otherdoll <rib|pelvis>|<BodyCodec の1行>|<PoseCodec の文字列。改行の代わりに ;>   ← E13。操作中でない人形を並び順に
  * pose
  * <PoseCodec の文字列>
  * ```
@@ -36,7 +38,11 @@ object EditorStateCodec {
         appendLine("panel ${bit(state.panelOpen)}")
         appendLine("cameraonly ${bit(state.cameraOnly)}")
         appendLine("bodytype ${BodyCodec.encodeLine(state.skeleton.body)}")
-        appendLine("anchor ${if (state.skeleton.anchor == Anchor.PELVIS) "pelvis" else "rib"}")
+        appendLine("anchor ${anchorCode(state.skeleton.anchor)}")
+        appendLine("active ${state.activeDoll}")
+        state.others.forEach { d ->
+            appendLine("otherdoll ${anchorCode(d.anchor)}|${BodyCodec.encodeLine(d.body)}|${PoseCodec.encode(d).trimEnd().replace('\n', ';')}")
+        }
         appendLine("pose")
         append(PoseCodec.encode(state.skeleton))
     }
@@ -68,6 +74,19 @@ object EditorStateCodec {
                 }
                 "panel" -> state.copy(panelOpen = flag(t.getOrNull(1) ?: return null) ?: return null)
                 "cameraonly" -> state.copy(cameraOnly = flag(t.getOrNull(1) ?: return null) ?: return null)
+                "active" -> state.copy(activeDoll = t.getOrNull(1)?.toIntOrNull()?.takeIf { it >= 0 } ?: return null)
+                "otherdoll" -> {
+                    val parts = line.removePrefix("otherdoll").trim().split('|')
+                    if (parts.size != 3) return null
+                    val anchor = when (parts[0]) {
+                        "pelvis" -> Anchor.PELVIS
+                        "rib" -> Anchor.CHEST
+                        else -> return null
+                    }
+                    val body = BodyCodec.decodeLine(parts[1]) ?: return null
+                    val pose = (PoseCodec.decode(parts[2].replace(';', '\n')) as? PoseDecodeResult.Ok)?.skeleton ?: return null
+                    state.copy(others = state.others + NaturalPose.unplacedNatural(pose.withBody(body).withAnchor(anchor)))
+                }
                 "anchor" -> when (t.getOrNull(1)) {
                     "pelvis" -> state.copy(skeleton = state.skeleton.withAnchor(Anchor.PELVIS))
                     "rib" -> state.copy(skeleton = state.skeleton.withAnchor(Anchor.CHEST))
@@ -81,11 +100,15 @@ object EditorStateCodec {
             }
         }
         // 選んでいた部位が置かれていなければ胸を選ぶ
+        // 操作中の人形の番号は、人形の数の範囲に入っていること(E13)
+        if (state.activeDoll > state.others.size) return null
         if (!skeleton.isPlaced(state.selected)) state = state.copy(selected = "rib")
         return state
     }
 
     private fun bit(b: Boolean) = if (b) "1" else "0"
+
+    private fun anchorCode(a: Anchor) = if (a == Anchor.PELVIS) "pelvis" else "rib"
 
     private fun flag(s: String): Boolean? = when (s) {
         "1" -> true
