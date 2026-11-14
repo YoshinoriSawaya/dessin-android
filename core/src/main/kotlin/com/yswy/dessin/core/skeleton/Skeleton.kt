@@ -1,5 +1,6 @@
 package com.yswy.dessin.core.skeleton
 
+import com.yswy.dessin.core.math.Mat4
 import com.yswy.dessin.core.math.Quat
 import com.yswy.dessin.core.math.Ray
 import com.yswy.dessin.core.math.Vec3
@@ -26,6 +27,8 @@ data class JointTransform(val position: Vec3, val rotation: Quat, val scale: Dou
  * 人形全体の状態。不変で、操作は新しい Skeleton を返す。
  * 部位の id は PartSpecs と同じ。置いていない部位も状態と変換を持つ(半透明の表示に使う)。
  * hands は手の形(E08-02)。既定(パー)と違う手だけを持つ(等しさの比較を保存の前後で揃えるため)
+ * anchor は操作の根(E10-01)。データはいつも胸を根に持ち、骨盤が根のときは脇腹を動かしても骨盤が止まるよう
+ * 胸の置き方を補正する。ポーズには保存しない
  */
 data class Skeleton(
     val root: RootTransform,
@@ -33,6 +36,7 @@ data class Skeleton(
     val placed: Set<String>,
     val body: BodyParams,
     val hands: Map<String, HandShape> = emptyMap(),
+    val anchor: Anchor = Anchor.CHEST,
 ) {
     /** 全関節のワールド変換。親から順に合成する */
     private val world: Map<String, JointTransform> by lazy {
@@ -86,7 +90,28 @@ data class Skeleton(
         return if (spec.isRoot) copy(root = RootTransform()) else withState(id, PartState.rest(spec))
     }
 
-    fun withState(id: String, state: PartState): Skeleton = copy(states = states + (id to state))
+    /** 部位の状態を変える。骨盤が根で、脇腹(骨盤より根の側)を変えたときは骨盤が止まるよう胸の置き方を補正する */
+    fun withState(id: String, state: PartState): Skeleton {
+        val changed = copy(states = states + (id to state))
+        return if (isAnchorSide(id)) changed.keepingPelvisOf(this) else changed
+    }
+
+    fun withAnchor(anchor: Anchor): Skeleton = copy(anchor = anchor)
+
+    /** 骨盤を根にしていて骨盤を置いている */
+    private val pelvisAnchored: Boolean get() = anchor == Anchor.PELVIS && isPlaced(PELVIS)
+
+    /** 骨盤が根のときに、根との間にある部位(脇腹)。胸自身は含めない */
+    private fun isAnchorSide(id: String): Boolean = pelvisAnchored && id in BETWEEN_ROOT_AND_PELVIS
+
+    /** 骨盤のワールドの位置と向きが before と同じになるよう、胸の置き方を回して動かす */
+    private fun keepingPelvisOf(before: Skeleton): Skeleton {
+        val p0 = before.worldTransforms().getValue(PELVIS)
+        val p1 = worldTransforms().getValue(PELVIS)
+        val dq = (p0.rotation * p1.rotation.inverse()).normalized()
+        val position = p0.position - dq.rotate(p1.position - root.position)
+        return copy(root = root.copy(position = position, rotation = (dq * root.rotation).normalized()))
+    }
 
     fun withRoot(root: RootTransform): Skeleton = copy(root = root)
 
@@ -106,6 +131,20 @@ data class Skeleton(
     fun guideCenter(id: String): Vec3 = world.getValue(id).position
 
     /**
+     * 可動域の表示(緑の範囲)の置き方。ふつうは親の向きに置く。
+     * 骨盤が根のときの脇腹は、脇腹自身の向き(骨盤と一緒に止まっている)に置き、上下を反転する。
+     * こうすると範囲は胸の上向きが取れる範囲になり、玉(胸の上向き)はその上に乗る(E10-01)
+     */
+    fun guideMatrix(id: String): Mat4 {
+        val s = guideScale(id)
+        return if (isAnchorSide(id)) {
+            Mat4.compose(guideCenter(id), world.getValue(id).rotation, Vec3(s, -s, s))
+        } else {
+            Mat4.compose(guideCenter(id), parentOf(id).rotation, s)
+        }
+    }
+
+    /**
      * 可動域の表示(緑の範囲・玉)の拡大率。親の拡大率と、部位自身の長さの倍率(E07-02)が効く。
      * 部位自身の拡大率(頭の大きさ)は効かない
      */
@@ -114,9 +153,10 @@ data class Skeleton(
     /** 可動域の表示の半径 */
     fun guideRadius(id: String): Double = PartSpecs[id].guideRadius * guideScale(id)
 
-    /** 玉のワールド位置 */
+    /** 玉のワールド位置。骨盤が根のときの脇腹は、胸の上向き(E10-01) */
     fun dotWorld(id: String): Vec3 {
         val spec = PartSpecs[id]
+        if (isAnchorSide(id)) return guideCenter(id) + world.getValue(spec.parent!!).rotation.rotate(Vec3.Y) * guideRadius(id)
         return guideCenter(id) + parentOf(id).rotation.rotate(dotPosition(spec, state(id)) * guideScale(id))
     }
 
@@ -124,7 +164,14 @@ data class Skeleton(
     fun aim(id: String, worldDir: Vec3): Skeleton {
         val spec = PartSpecs[id]
         if (spec.isRoot) return this
-        val dirInParent = parentOf(id).rotation.inverse().rotate(worldDir)
+        val dirInParent = if (isAnchorSide(id)) {
+            // 骨盤が根のときの脇腹は、胸の上向きとして受け取る。脇腹は止まっているので、
+            // 脇腹から見た胸の上向き v になるような脇腹の回転を求め、その回転で脇腹の向きを決める
+            val v = world.getValue(id).rotation.inverse().rotate(worldDir.normalized())
+            Quat.fromUnitVectors(v, Vec3.Y).rotate(spec.restDir)
+        } else {
+            parentOf(id).rotation.inverse().rotate(worldDir)
+        }
         return withState(id, aimPart(spec, state(id), dirInParent))
     }
 
@@ -146,8 +193,10 @@ data class Skeleton(
     fun orb(id: String, rotInWorld: Quat): Skeleton {
         val spec = PartSpecs[id]
         if (spec.isRoot) return withRoot(root.copy(rotation = orbRotateRoot(root.rotation, rotInWorld)))
+        // 骨盤が根のときの脇腹は、上半身をその向きに回す(脇腹には逆の回転を加えると、補正で胸が回る)
+        val rot = if (isAnchorSide(id)) rotInWorld.inverse() else rotInWorld
         val pq = parentOf(id).rotation
-        val rotInParent = pq.inverse() * rotInWorld * pq
+        val rotInParent = pq.inverse() * rot * pq
         return withState(id, orbRotate(spec, state(id), rotInParent))
     }
 
@@ -157,6 +206,10 @@ data class Skeleton(
     private fun subtree(id: String): List<String> = listOf(id) + PartSpecs.children(id).flatMap { subtree(it.id) }
 
     companion object {
+        private const val PELVIS = "pelvis"
+        /** 胸と骨盤の間にある部位 */
+        private val BETWEEN_ROOT_AND_PELVIS = setOf("flank")
+
         /** 胸だけが置かれ、ほかの部位は休止状態 */
         fun initial(): Skeleton = Skeleton(
             root = RootTransform(),
@@ -165,4 +218,10 @@ data class Skeleton(
             body = BodyParams(),
         )
     }
+}
+
+/** 操作の根(E10-01) */
+enum class Anchor(val label: String) {
+    CHEST("胸"),
+    PELVIS("骨盤"),
 }
