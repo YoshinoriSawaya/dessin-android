@@ -30,6 +30,8 @@ class SlidersTest {
                 Slider(SliderKind.HEIGHT, "身長", 70, 130, 100, "%"),
                 // E08-04: 体型の乳房の大きさ
                 Slider(SliderKind.BREAST_SIZE, "乳房", 0, 100, 0, "%"),
+                // E14-03: 体型の胸の長さ
+                Slider(SliderKind.TORSO_LENGTH, "長さ", 70, 130, 100, "%"),
             ),
             initial.sliders,
         )
@@ -39,7 +41,7 @@ class SlidersTest {
     fun 肋骨の値はオイラー角を度に丸めて出す() {
         val rot = Quat.fromEulerYXZ(Vec3(20.4 * D2R, -35.6 * D2R, 10.0 * D2R))
         val s = initial.copy(skeleton = initial.skeleton.withRoot(RootTransform(scale = 1.234, rotation = rot)))
-        assertEquals(listOf(123, 20, -36, 10, 100, 0), s.sliders.map { it.value }) // 末尾は身長(E07-02)と乳房(E08-04)
+        assertEquals(listOf(123, 20, -36, 10, 100, 0, 100), s.sliders.map { it.value }) // 末尾は身長(E07-02)・乳房(E08-04)・胸の長さ(E14-03)
     }
 
     @Test
@@ -80,6 +82,8 @@ class SlidersTest {
                 Slider(SliderKind.ROLL, "ひねり", -45, 45, 0, "°"),
                 Slider(SliderKind.PELVIS_WIDTH, "骨盤の横幅", 60, 150, 100, "%"),
                 Slider(SliderKind.HIP_INSET, "付け根の内寄り", 0, 80, 41, "mm"),
+                // E14-03: 骨盤の長さ
+                Slider(SliderKind.TORSO_LENGTH, "長さ", 70, 130, 100, "%"),
             ),
             pelvis.sliders,
         )

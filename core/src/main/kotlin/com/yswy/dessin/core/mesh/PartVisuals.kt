@@ -98,17 +98,21 @@ object PartVisuals {
 
     /**
      * 体型を反映したメッシュの置き方(Web版の setShoulderWidth・setPelvisWidth・updateHips)。
-     * 肩は長さ、骨盤は横幅、付け根は長さが変わる。首・上腕・前腕・もも・すねは長さの倍率で縦に伸びる。
+     * 肩は長さ、骨盤は横幅、付け根は長さが変わる。首・上腕・前腕・もも・すね・胸・脇腹・骨盤は長さの倍率で縦に伸びる。
      * 頭の大きさと身長は関節の拡大率で効くのでここでは扱わない。
      */
     fun placement(id: String, index: Int, body: BodyParams): MeshPlacement {
         val e = table.getValue(id)[index]
-        // 乳房は大きさで拡大する(前後は少し平たく)。E08-04
+        val spec = PartSpecs[id]
+        val k = lengthScale(spec, body)
+        fun stretched(p: Vec3) = Vec3(p.x, p.y * k, p.z)
+        // 乳房は大きさで拡大する(前後は少し平たく)。E08-04。胸の長さでは位置だけが動く(E14-03)
         if (e.part.feature == BodyFeature.BREAST) {
             val s = body.breastSize
-            return MeshPlacement(e.position, e.rotation, Vec3(s, s, 0.95 * s))
+            return MeshPlacement(stretched(e.position), e.rotation, Vec3(s, s, 0.95 * s))
         }
-        val spec = PartSpecs[id]
+        // 性器は骨盤の長さで位置だけが動く(形は伸ばさない。E14-03)
+        if (e.part.feature != null) return MeshPlacement(stretched(e.position), e.rotation, Vec3(1.0, 1.0, 1.0))
         val sg = if (spec.side == Side.RIGHT) -1.0 else 1.0
         if (index == 0) {
             when {
@@ -117,7 +121,7 @@ object PartVisuals {
                     return MeshPlacement(Vec3(sg * 0.06 * k, e.position.y, e.position.z), e.rotation, Vec3(1.0, k, 1.0))
                 }
                 spec.adjust == Adjust.PELVIS_WIDTH ->
-                    return MeshPlacement(e.position, e.rotation, Vec3(body.pelvisWidth, 1.0, 1.0))
+                    return MeshPlacement(stretched(e.position), e.rotation, Vec3(body.pelvisWidth, k, 1.0))
                 id.startsWith("hip") -> {
                     // 付け根は骨盤の外面より 0.02 外まで見せる(E04-02。骨盤に埋まって選べなかったため)
                     val len = PELVIS_OUTER * body.pelvisWidth + 0.02 - HIP_ROOT_X
@@ -125,10 +129,9 @@ object PartVisuals {
                 }
             }
         }
-        // 長さを変えた部位(首・上腕・前腕・もも・すね)の形は縦に伸ばす。関節の玉(MARKER)はそのまま(E07-02)
-        val k = lengthScale(spec, body)
+        // 長さを変えた部位(首・上腕・前腕・もも・すね、胸・脇腹・骨盤)の形は縦に伸ばす。関節の玉(MARKER)はそのまま(E07-02・E14-03)
         if (k != 1.0 && e.part.kind == MeshKind.BODY) {
-            return MeshPlacement(Vec3(e.position.x, e.position.y * k, e.position.z), e.rotation, Vec3(1.0, k, 1.0))
+            return MeshPlacement(stretched(e.position), e.rotation, Vec3(1.0, k, 1.0))
         }
         return MeshPlacement(e.position, e.rotation, Vec3(1.0, 1.0, 1.0))
     }

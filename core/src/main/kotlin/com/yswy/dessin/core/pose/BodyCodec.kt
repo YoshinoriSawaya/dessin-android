@@ -30,6 +30,10 @@ object BodyCodec {
         "breastSize" to BodyParams::breastSize,
         // 性別は 0(男)か 1(女)の数で書く(E08-04)
         "sex" to { b: BodyParams -> b.sex.code.toDouble() },
+        // E14-03
+        "chestLength" to BodyParams::chestLength,
+        "flankLength" to BodyParams::flankLength,
+        "pelvisLength" to BodyParams::pelvisLength,
     )
 
     fun encodeLine(body: BodyParams): String = fields.joinToString(" ") { (name, get) -> "$name=${get(body)}" }
@@ -59,6 +63,9 @@ object BodyCodec {
             kneeRoll = v("kneeRoll", d.kneeRoll),
             breastSize = v("breastSize", d.breastSize),
             sex = if (v("sex", d.sex.code.toDouble()) >= 0.5) Sex.FEMALE else Sex.MALE,
+            chestLength = v("chestLength", d.chestLength),
+            flankLength = v("flankLength", d.flankLength),
+            pelvisLength = v("pelvisLength", d.pelvisLength),
         ).clamped()
     }
 }

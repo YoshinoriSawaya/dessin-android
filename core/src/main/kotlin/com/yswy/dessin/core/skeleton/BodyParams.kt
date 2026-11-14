@@ -22,6 +22,9 @@ import kotlin.math.sign
  * @property kneeRoll ひざの転がりのずれ。すねの回転の中心の、ひざの関節からの高さ(E06-02・E07-02)
  * @property breastSize 乳房の大きさ(0 で平ら、1 で最大)。E08-04
  * @property sex 性別(性器の形)。E08-04
+ * @property chestLength 胸の長さ(倍率)。E14-03
+ * @property flankLength 脇腹の長さ(倍率)。E14-03
+ * @property pelvisLength 骨盤の長さ(倍率)。E14-03
  */
 data class BodyParams(
     val headSize: Double = 1.0,
@@ -38,6 +41,9 @@ data class BodyParams(
     val kneeRoll: Double = 0.03,
     val breastSize: Double = 0.0,
     val sex: Sex = Sex.MALE,
+    val chestLength: Double = 1.0,
+    val flankLength: Double = 1.0,
+    val pelvisLength: Double = 1.0,
 ) {
     /** 範囲に収めた値 */
     fun clamped() = BodyParams(
@@ -55,6 +61,9 @@ data class BodyParams(
         kneeRoll.coerceIn(KNEE_ROLL_RANGE),
         breastSize.coerceIn(BREAST_SIZE_RANGE),
         sex,
+        chestLength.coerceIn(LIMB_LENGTH_RANGE),
+        flankLength.coerceIn(LIMB_LENGTH_RANGE),
+        pelvisLength.coerceIn(LIMB_LENGTH_RANGE),
     )
 
     companion object {
@@ -94,7 +103,7 @@ fun hipLength(params: BodyParams): Double {
 }
 
 /**
- * 部位の長さの倍率(E07-02)。首・上腕・前腕・もも・すねだけが変わる(左右共通)。
+ * 部位の長さの倍率(E07-02)。首・上腕・前腕・もも・すね(左右共通)と、胸・脇腹・骨盤(E14-03)が変わる。
  * 部位の形は縦に伸び、子の取り付け位置と可動域の表示の半径もこの倍率に従う。
  */
 fun lengthScale(spec: PartSpec, params: BodyParams): Double = when (spec.id.removeSuffix("L").removeSuffix("R").takeIf { spec.side != null } ?: spec.id) {
@@ -103,12 +112,16 @@ fun lengthScale(spec: PartSpec, params: BodyParams): Double = when (spec.id.remo
     "forearm" -> params.forearmLength
     "thigh" -> params.thighLength
     "shin" -> params.shinLength
+    "rib" -> params.chestLength
+    "flank" -> params.flankLength
+    "pelvis" -> params.pelvisLength
     else -> 1.0
 }
 
 /**
  * 調整を反映した取り付け位置。肩幅は上腕の、骨盤の横幅と内寄りはももの取り付け位置を左右に動かす。
- * 首の付け根は前後に動く。長さを変えた部位の子は、親の長さの倍率だけ離れる(E07-02)。
+ * 首の付け根は前後に動く。長さを変えた部位の子は、親の長さの倍率だけ縦(y)に離れる(E07-02)。
+ * 横と前後は変えない(胸の子の肩・首の付け根は横や前後にずれているため。E14-03)
  */
 fun attachOf(spec: PartSpec, params: BodyParams): Vec3 {
     val a = spec.attach
@@ -119,7 +132,7 @@ fun attachOf(spec: PartSpec, params: BodyParams): Vec3 {
         else -> a
     }
     val parent = spec.parent?.let { PartSpecs[it] } ?: return placed
-    return placed * lengthScale(parent, params)
+    return Vec3(placed.x, placed.y * lengthScale(parent, params), placed.z)
 }
 
 /** 回転の中心の、関節からのずれ。ひざ(すね)は体型の kneeRoll だけ上(E07-02)。ほかは定義のまま */
