@@ -49,7 +49,7 @@ object EditorStateCodec {
             is PoseDecodeResult.Ok -> r.skeleton
             is PoseDecodeResult.Error -> return null
         }
-        var state = EditorState(skeleton = skeleton)
+        var state = EditorState(skeleton = NaturalPose.unplacedNatural(skeleton))
         for (line in lines.subList(1, poseAt).map { it.trim() }.filter { it.isNotEmpty() }) {
             val t = line.split(Regex("\\s+"))
             state = when (t[0]) {

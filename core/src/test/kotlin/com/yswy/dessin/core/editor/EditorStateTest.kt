@@ -21,7 +21,8 @@ class EditorStateTest {
 
     @Test
     fun 初期状態は肋骨を選び_パネルは開いている() {
-        assertEquals(Skeleton.initial(), initial.skeleton)
+        // 置いていない部位は自然な姿勢で持つ(2026-11-14 の不具合の修正。置く前の影を置いたときと同じ角度にする)
+        assertEquals(NaturalPose.unplacedNatural(Skeleton.initial()), initial.skeleton)
         assertEquals("rib", initial.selected)
         assertNull(initial.camera)
         assertEquals(DisplayOptions(), initial.options)

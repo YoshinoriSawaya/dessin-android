@@ -19,7 +19,7 @@ data class PartChip(val id: String, val label: String, val look: ChipLook) {
  * @property panelOpen 操作パネルを開いているか(Web版の折りたたみ)
  */
 data class EditorState(
-    val skeleton: Skeleton = Skeleton.initial(),
+    val skeleton: Skeleton = NaturalPose.initial,
     val selected: String = "rib",
     val camera: OrbitCamera? = null,
     val options: DisplayOptions = DisplayOptions(),
@@ -38,7 +38,7 @@ data class EditorState(
     /** 選択中の部位を子孫ごと外し、親を選ぶ(Web版の「外す」) */
     fun removeSelected(): EditorState {
         val parent = PartSpecs[selected].parent ?: return this
-        return copy(skeleton = skeleton.remove(selected)).select(parent)
+        return copy(skeleton = NaturalPose.unplacedNatural(skeleton.remove(selected))).select(parent)
     }
 
     /** 選択中の部位の向きを戻す(Web版の「向きを戻す」)。胸は位置・回転・大きさを、ほかは自然な姿勢(E09)に戻す */
