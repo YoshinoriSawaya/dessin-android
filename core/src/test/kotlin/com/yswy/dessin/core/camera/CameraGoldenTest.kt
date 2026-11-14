@@ -8,7 +8,7 @@ import kotlin.math.abs
 
 /**
  * Web版(three.js r128 の PerspectiveCamera・Raycaster)と同じ視点・行列・レイになることを確かめる(E02-01)。
- * データは tools/golden の generate.mjs が作る。
+ * データは固定(v1 のときに tools/golden の generate.mjs で作った。道具は E04-04 で消し、Git の履歴に残る)。
  */
 class CameraGoldenTest {
     private val tol = 1e-6
@@ -16,7 +16,7 @@ class CameraGoldenTest {
     @Test
     fun Web版と同じ視点と行列とレイになる() {
         val text = javaClass.getResource("/golden/camera-golden.txt")?.readText()
-            ?: error("golden/camera-golden.txt が無い。tools/golden で npm run generate を実行する")
+            ?: error("golden/camera-golden.txt が無い")
         val errors = mutableListOf<String>()
         var cam = OrbitCamera()
         var width = 0.0

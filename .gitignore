@@ -17,8 +17,6 @@ captures/
 .idea/
 *.iml
 
-# Node(tools/golden)
-node_modules/
 
 # OS
 Thumbs.db

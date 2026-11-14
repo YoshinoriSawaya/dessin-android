@@ -48,17 +48,9 @@ adb shell input mouse scroll 540 700 --axis VSCROLL,1   # マウスホイール(
 - 操作感の評価は利用者が行い、結果をタスクの検証結果に書く(CLAUDE.md)
 
 ## Web版との照合データ(E01-10。v1 で役目を終えた)
-Web版を使わない方針(2026-11-11)に合わせ、`WebGoldenTest`・`MeshGoldenTest`・`PickGoldenTest` は止めた(@Ignore。仕様が Web版と変わるため)。`CameraGoldenTest` は人形の仕様に関係しないので動かし続ける。以下は記録として残す。
+`CameraGoldenTest` だけが残っていて、Web版(`docs/web-reference.html`)の視点・行列・レイと照合する(`core/src/test/resources/golden/camera-golden.txt`)。カメラの仕様は Web版から変えていないので動かし続ける。データは固定で、作り直さない。
 
-`core` の `WebGoldenTest`・`CameraGoldenTest`・`MeshGoldenTest`・`PickGoldenTest` は、Web版(`docs/web-reference.html`)を Node で動かして作ったデータ(`core/src/test/resources/golden/` の `web-golden.txt`・`camera-golden.txt`・`mesh-golden.txt`・`pick-golden.txt`)と照合する。Web版やデータの作り方を変えたら作り直す。
-
-```
-cd tools/golden
-npm install
-npm run generate
-```
-
-Node.js が必要。three.js r128 と jsdom は `tools/golden` の開発用の依存で、アプリには入らない。
+ほかの照合テスト(`WebGoldenTest`・`MeshGoldenTest`・`PickGoldenTest`)と、データを作る道具 `tools/golden`(Node で Web版を動かす)は E04-04 で消した。必要なら Git の履歴(タグ v1.4.0)から取り出す。
 
 ## 起動時の状態の指定(デバッグビルドだけ)
 エミュレータで見た目を確かめるため、起動時の状態を adb から指定できる(`app/.../DebugStart.kt`)。

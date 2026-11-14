@@ -7,7 +7,7 @@ import org.junit.Test
 import kotlin.math.PI
 import kotlin.math.sqrt
 
-/** 形の詳細な値は MeshGoldenTest で Web版と照合する。ここでは性質を確かめる */
+/** 形の性質を確かめる(v1 では詳細な値を Web版と照合した。照合テストは E04-04 で消した) */
 class PrimitivesTest {
     private fun vertex(m: Mesh, i: Int) = Vec3(m.positions[i * 3].toDouble(), m.positions[i * 3 + 1].toDouble(), m.positions[i * 3 + 2].toDouble())
     private fun normal(m: Mesh, i: Int) = Vec3(m.normals[i * 3].toDouble(), m.normals[i * 3 + 1].toDouble(), m.normals[i * 3 + 2].toDouble())

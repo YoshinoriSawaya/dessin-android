@@ -105,4 +105,3 @@ v1 までは Web版 `docs/web-reference.html`(three.js r128、単一HTML)を参�
 
 バージョンは `gradle/libs.versions.toml` を正とする。
 
-開発用の道具(アプリには入らない): `tools/golden` の three.js r128(Web版を Node で動かすため)と jsdom(ブラウザの代わり)。
