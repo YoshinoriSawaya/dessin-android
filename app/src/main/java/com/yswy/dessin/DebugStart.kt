@@ -18,6 +18,7 @@ private const val TAG = "DessinDebug"
  * デバッグビルドだけ、起動時の状態を adb から指定できる(エミュレータでの見た目の確認用)。
  * - `--es demo all` 全部位を置き、腕と脚を少し動かした姿勢
  * - `--es demo natural` 画面で順に選んだときと同じく、全部位を自然な姿勢(E09)で置く
+ * - `--es demo multi` 全部位を自然な姿勢で置いた人形を3体並べる(E13)
  * - `--es pose "<PoseCodec の文字列。改行の代わりに ;>"` 保存形式で指定
  * - `--es select <部位id>` 選択する部位(置けるなら置く)
  * 例: `adb shell am start -n com.yswy.dessin/.MainActivity --es demo all --es select upperArmL`
@@ -25,6 +26,10 @@ private const val TAG = "DessinDebug"
 fun debugStartState(context: Context, intent: Intent?): EditorState {
     val debuggable = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
     if (!debuggable || intent == null) return EditorState()
+    if (intent.getStringExtra("demo") == "multi") {
+        fun full(s: EditorState) = PartSpecs.all.fold(s) { acc, p -> acc.select(p.id) }
+        return full(full(full(EditorState()).addDoll()).addDoll()).select("rib")
+    }
     var skeleton = when {
         intent.getStringExtra("demo") == "all" -> demoPose()
         intent.getStringExtra("demo") == "natural" -> PartSpecs.all.fold(EditorState()) { s, p -> s.select(p.id) }.skeleton

@@ -133,7 +133,7 @@ fun DessinScreen(start: EditorState) {
                 },
                 update = { view ->
                     view.pointerListener = pointers
-                    view.setScene(DollRenderer.Scene(state.skeleton, state.camera ?: OrbitCamera(), state.selected, state.options))
+                    view.setScene(DollRenderer.Scene(state.skeleton, state.camera ?: OrbitCamera(), state.selected, state.options, state.others))
                 },
             )
             if (hintVisible && tallEnough) {

@@ -12,6 +12,7 @@ import com.yswy.dessin.core.mesh.meshWorldMatrix
 import com.yswy.dessin.core.render.DisplayOptions
 import com.yswy.dessin.core.render.MeshStyle
 import com.yswy.dessin.core.render.drawPlan
+import com.yswy.dessin.core.render.otherDollPlan
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.Skeleton
 
@@ -104,6 +105,23 @@ fun pickAtPress(skeleton: Skeleton, selected: String, options: DisplayOptions, r
     val rom = romPoint(skeleton, selected, options, ray)
     if (rom != null && part != null && part == PartSpecs[selected].parent) part = null
     return PressPick(part, rom)
+}
+
+/** 押した人形が場面の何番目か(E13。人形のモードで使う)。置いた部位のうち最も手前に当たった人形。何も無ければ null */
+fun pickDoll(dolls: List<Skeleton>, ray: Ray): Int? {
+    var best: Int? = null
+    var bestDistance = Double.MAX_VALUE
+    dolls.forEachIndexed { i, doll ->
+        otherDollPlan(doll, DisplayOptions()).meshes.forEach { d ->
+            val mesh = PartVisuals.meshes(d.partId)[d.meshIndex].mesh
+            val hit = nearestHit(mesh, meshWorldMatrix(doll, d.partId, d.meshIndex), ray, doubleSided = d.style == MeshStyle.MASK)
+            if (hit != null && hit.distance < bestDistance) {
+                bestDistance = hit.distance
+                best = i
+            }
+        }
+    }
+    return best
 }
 
 private class Hit(val point: Vec3, val distance: Double)
