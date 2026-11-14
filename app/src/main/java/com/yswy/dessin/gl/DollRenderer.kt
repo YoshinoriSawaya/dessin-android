@@ -17,6 +17,7 @@ import com.yswy.dessin.core.render.DisplayOptions
 import com.yswy.dessin.core.render.MeshDraw
 import com.yswy.dessin.core.render.MeshStyle
 import com.yswy.dessin.core.render.drawPlan
+import com.yswy.dessin.core.render.otherDollPlan
 import com.yswy.dessin.core.render.sunLightMatrix
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.Skeleton
@@ -36,6 +37,8 @@ class DollRenderer : GLSurfaceView.Renderer {
         val camera: OrbitCamera,
         val selected: String,
         val options: DisplayOptions,
+        /** 操作中でない人形(E13)。置いた部位だけを描く */
+        val others: List<Skeleton> = emptyList(),
     )
 
     @Volatile
@@ -95,21 +98,24 @@ class DollRenderer : GLSurfaceView.Renderer {
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT or GLES30.GL_DEPTH_BUFFER_BIT)
         viewProjection = (s.camera.projectionMatrix(aspect) * s.camera.viewMatrix()).toFloatArray()
         val plan = drawPlan(s.skeleton, s.selected, s.options)
-        drawShadowMap(s, plan.meshes.filter { it.style != MeshStyle.GHOST })
+        val otherPlans = s.others.map { it to otherDollPlan(it, s.options).meshes }
+        drawShadowMap(s, listOf(s.skeleton to plan.meshes.filter { it.style != MeshStyle.GHOST }) + otherPlans)
 
         if (s.options.grid) {
             drawFlat(IDENTITY, GRID) { gridOthers.draw() }
             drawFlat(IDENTITY, GRID_CENTER) { gridCenter.draw() }
         }
 
-        // 不透明な部位
-        plan.meshes.filter { it.style != MeshStyle.GHOST }.forEach { d ->
-            val model = meshWorldMatrix(s.skeleton, d.partId, d.meshIndex).toFloatArray()
-            val p = gpuOf(d.partId)[d.meshIndex]
-            drawLit(model, d.style)
-            p.body.draw()
-            if (d.edges) drawFlat(model, EDGE) { p.edges?.draw() }
-            if (d.lines) drawFlat(model, LINE) { p.lines.forEach { it.draw() } }
+        // 不透明な部位(操作中の人形と、ほかの人形。E13)
+        (listOf(s.skeleton to plan.meshes.filter { it.style != MeshStyle.GHOST }) + otherPlans).forEach { (skeleton, meshes) ->
+            meshes.forEach { d ->
+                val model = meshWorldMatrix(skeleton, d.partId, d.meshIndex).toFloatArray()
+                val p = gpuOf(d.partId)[d.meshIndex]
+                drawLit(model, d.style)
+                p.body.draw()
+                if (d.edges) drawFlat(model, EDGE) { p.edges?.draw() }
+                if (d.lines) drawFlat(model, LINE) { p.lines.forEach { it.draw() } }
+            }
         }
 
         // 半透明のゴースト。奥行きは書かず、奥から順に重ねる
@@ -128,9 +134,9 @@ class DollRenderer : GLSurfaceView.Renderer {
         GLES30.glDepthMask(true)
     }
 
-    /** 影の下描き(E11)。置いた部位(ゴーストを除く)を太陽から見た奥行きとして書く */
-    private fun drawShadowMap(s: Scene, casters: List<MeshDraw>) {
-        val light = if (s.options.shadows && shadowMap.ready) sunLightMatrix(s.skeleton) else null
+    /** 影の下描き(E11)。すべての人形の置いた部位(ゴーストを除く)を太陽から見た奥行きとして書く */
+    private fun drawShadowMap(s: Scene, casters: List<Pair<Skeleton, List<MeshDraw>>>) {
+        val light = if (s.options.shadows && shadowMap.ready) sunLightMatrix(listOf(s.skeleton) + s.others) else null
         shadowOn = light != null
         if (light == null) return
         lightViewProjection = light.toFloatArray()
@@ -141,9 +147,11 @@ class DollRenderer : GLSurfaceView.Renderer {
         GLES30.glEnable(GLES30.GL_POLYGON_OFFSET_FILL)
         GLES30.glPolygonOffset(2f, 4f)
         GLES30.glUniformMatrix4fv(depth.uniform("uLightViewProjection"), 1, false, lightViewProjection, 0)
-        casters.forEach { d ->
-            GLES30.glUniformMatrix4fv(depth.uniform("uModel"), 1, false, meshWorldMatrix(s.skeleton, d.partId, d.meshIndex).toFloatArray(), 0)
-            gpuOf(d.partId)[d.meshIndex].body.draw()
+        casters.forEach { (skeleton, meshes) ->
+            meshes.forEach { d ->
+                GLES30.glUniformMatrix4fv(depth.uniform("uModel"), 1, false, meshWorldMatrix(skeleton, d.partId, d.meshIndex).toFloatArray(), 0)
+                gpuOf(d.partId)[d.meshIndex].body.draw()
+            }
         }
         GLES30.glDisable(GLES30.GL_POLYGON_OFFSET_FILL)
         GLES30.glEnable(GLES30.GL_CULL_FACE)

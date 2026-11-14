@@ -64,3 +64,10 @@ fun drawPlan(skeleton: Skeleton, selected: String, options: DisplayOptions): Dra
     val guide = selected.takeIf { options.guides && skeleton.isPlaced(it) && !PartSpecs[it].isRoot }
     return DrawPlan(meshes, guide)
 }
+
+/**
+ * 操作中でない人形の描き方(E13)。置いた部位だけを、選択の色・半透明の影(置く前の部位)・可動域なしで描く。
+ * 関節の玉・正中線の切り替えには従う
+ */
+fun otherDollPlan(skeleton: Skeleton, options: DisplayOptions): DrawPlan =
+    drawPlan(skeleton, selected = "", options = options.copy(guides = false))
