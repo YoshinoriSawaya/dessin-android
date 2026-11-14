@@ -22,11 +22,10 @@
   - lint: 0 errors、5 warnings(新しいバージョンがある 4件、アプリのアイコン未設定 1件)
   - test: テストはまだ無い(`:app:testDebugUnitTest NO-SOURCE`)
 - エミュレータでの起動(Claude が adb で実施): AVD `AssetDash_API37`(Android 17、x86_64)に `./gradlew installDebug` で入れ、`am start` で起動 → 「デッサン人形」と表示され、アプリのクラッシュはなし(logcat の crash バッファに出ていたのはエミュレータの UWB サービスで、アプリとは無関係)
-- 実機での起動: 未確認
+- 実機での起動: 2026-11-11 に実機(Pixel 10a、Android 17)へ入れ、起動を確認した(E02-12)
 
 ## 未検証のまま残したこと
-- 実機での起動(人間が確認する)
 - lint の警告にあるバージョン更新は、別プロジェクトと揃えるため見送った
 
 ## ステータス
-完了(実機での起動は未確認)
+完了
