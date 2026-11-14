@@ -65,7 +65,8 @@ class ShadowTest {
 
     @Test
     fun 影の項目が無い古い画面の状態も読める() {
-        val text = EditorStateCodec.encode(EditorState()).replace(Regex("options (\\S+ \\S+ \\S+ \\S+) \\S+"), "options $1")
+        // 5番目以降(影と、E13-05 で足したほかを淡く)を消して、影が無かったころの形にする
+        val text = EditorStateCodec.encode(EditorState()).replace(Regex("options (\\S+ \\S+ \\S+ \\S+)( \\S+)+"), "options $1")
         assertTrue(text.contains(Regex("options \\S+ \\S+ \\S+ \\S+\n")))
         assertTrue(EditorStateCodec.decode(text)!!.options.shadows)
     }

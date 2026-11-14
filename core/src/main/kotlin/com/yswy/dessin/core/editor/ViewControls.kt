@@ -7,8 +7,8 @@ import com.yswy.dessin.core.mesh.fitBounds
 import com.yswy.dessin.core.skeleton.BodyParams
 import com.yswy.dessin.core.skeleton.Skeleton
 
-/** 表示の切替(Web版の「ガイド」「正中線」「関節の玉」「格子」のチップ) */
-enum class Display { GUIDES, LINES, MARKERS, GRID, SHADOWS }
+/** 表示の切替(Web版の「ガイド」「正中線」「関節の玉」「格子」のチップと、影(E11)・ほかを淡く(E13-05)) */
+enum class Display { GUIDES, LINES, MARKERS, GRID, SHADOWS, FADE_OTHERS }
 
 fun EditorState.isOn(d: Display): Boolean = when (d) {
     Display.GUIDES -> options.guides
@@ -16,7 +16,11 @@ fun EditorState.isOn(d: Display): Boolean = when (d) {
     Display.MARKERS -> options.markers
     Display.GRID -> options.grid
     Display.SHADOWS -> options.shadows
+    Display.FADE_OTHERS -> options.fadeOthers
 }
+
+/** 操作中でない人形を淡く描くか(E13-05)。人形のモード中で、「ほかを淡く」がオンのときだけ */
+val EditorState.fadeOthers: Boolean get() = dollMode && options.fadeOthers
 
 fun EditorState.toggle(d: Display): EditorState = copy(
     options = when (d) {
@@ -25,6 +29,7 @@ fun EditorState.toggle(d: Display): EditorState = copy(
         Display.MARKERS -> options.copy(markers = !options.markers)
         Display.GRID -> options.copy(grid = !options.grid)
         Display.SHADOWS -> options.copy(shadows = !options.shadows)
+        Display.FADE_OTHERS -> options.copy(fadeOthers = !options.fadeOthers)
     },
 )
 
