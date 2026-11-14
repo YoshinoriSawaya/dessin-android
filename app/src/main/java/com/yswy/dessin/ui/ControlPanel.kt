@@ -1,5 +1,8 @@
 package com.yswy.dessin.ui
 
+import com.yswy.dessin.core.skeleton.PartSpecs
+import com.yswy.dessin.core.skeleton.Side
+import com.yswy.dessin.core.editor.canMirror
 import com.yswy.dessin.core.editor.MAX_DOLLS
 import com.yswy.dessin.core.editor.anchorChoice
 import com.yswy.dessin.core.skeleton.Anchor
@@ -70,6 +73,8 @@ class PanelActions(
     val onSelect: (String) -> Unit,
     val onReset: () -> Unit,
     val onRemove: () -> Unit,
+    /** 選択中の部位とその先を反対側へ鏡写しにする(E15-02) */
+    val onMirror: () -> Unit,
     val onTogglePanel: () -> Unit,
     val onSlider: (SliderKind, Int) -> Unit,
     val onOrb: (Quat) -> Unit,
@@ -107,8 +112,14 @@ fun ControlPanel(
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(Modifier.weight(1f)) {
-                Text("選択中の部位", fontSize = 11.sp, color = Palette.Muted)
+                // 「反対側へコピー」(E15-02)が並ぶと幅が狭くなるので、1行に収めて折り返さない
+                Text("選択中の部位", fontSize = 11.sp, color = Palette.Muted, maxLines = 1, softWrap = false, overflow = TextOverflow.Clip)
                 Text(state.selectionLabel, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = Palette.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            // 左右のある部位を選んでいるときだけ、反対側へのコピーを出す(E15-02)
+            // 文字は写す先の側(「反対側へコピー」では長く、「左つま先」などの名前が切れたため)
+            PartSpecs[state.selected].side?.let { side ->
+                GhostButton(if (side == Side.LEFT) "右へコピー" else "左へコピー", enabled = state.canMirror, onClick = actions.onMirror)
             }
             GhostButton("向きを戻す", enabled = true, onClick = actions.onReset)
             GhostButton("外す", enabled = state.canRemove, onClick = actions.onRemove)

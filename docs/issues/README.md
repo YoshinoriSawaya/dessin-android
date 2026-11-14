@@ -18,13 +18,13 @@
 | [E12](epics/E12-camera-mode.md) | カメラだけを操作するモード | 完了(実機での確認待ち) |
 | [E13](epics/E13-multi-doll.md) | 複数の人形 | 完了(実機での確認待ち) |
 | [E14](epics/E14-usage-feedback.md) | 使ってみて出た要望(体の形と骨盤の根) | 完了 |
-| [E15](epics/E15-undo-mirror.md) | Undo と左右対称のコピー | 進行中 |
+| [E15](epics/E15-undo-mirror.md) | Undo と左右対称のコピー | 完了(実機での確認待ち。未リリース) |
 
 ## いまの状態(2026-11-15 時点)
 - 最新は v1.5.0(CHANGELOG、振り返りは docs/retrospectives/R06-v1.5.md)。実機(Pixel 10a)に入れてある
 - **利用者がしばらく使ってから再開する**(2026-11-14、利用者の判断)。使っていて気づいたことを、再開するときに下書き(staging)へ入れる
 - v1.1.0・v1.2.0 の機能(E07〜E13)は、実機での起動とエラーのログは確認したが、利用者による操作の確認はまだ
-- テスト: `./gradlew lint test assembleDebug` が通る(:core のテスト426件、止めているテストは無い。lint は既存の警告5件のみ)
+- テスト: `./gradlew lint test assembleDebug` が通る(:core のテスト444件、止めているテストは無い。lint は既存の警告5件のみ)
 - Web版は今後使わない。仕様の正典は docs/architecture.md と Android 版のコード。テストは Issue ごとに書く(CLAUDE.md)
 - ブランチは main だけで、未コミットの変更は無い。staging は空(下書き4件は E14 に振り分け、v1.4.0 で入れた)
 - 使ってみる期間の途中に、ひざの転がりで右側の部位がずれる不具合の修正と既定の体型(E07-04)を入れ、v1.3.0 にした。既定の体型は実機で利用者が確認した
