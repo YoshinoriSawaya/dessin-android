@@ -95,6 +95,61 @@ object Primitives {
     }
 
     /**
+     * y 軸まわりに輪郭を回した形(旋盤体。E08-01)。profile は下から上への (y, 半径) の並び。上下はふたで閉じる。
+     * 側面の法線は輪郭の傾きから求める(なめらかにつなぐ)。
+     */
+    fun lathe(profile: List<Pair<Double, Double>>, radialSegments: Int): Mesh {
+        require(profile.size >= 2) { "輪郭は2点以上" }
+        val b = MeshBuilder()
+        val rows = Array(profile.size) { IntArray(radialSegments + 1) }
+        for ((i, pr) in profile.withIndex()) {
+            val (y, r) = pr
+            // 輪郭の接線(前後の点の差)に垂直な向きが法線。(dr, dy) の接線に対し、外向きは (dy, −dr)
+            val (y0, r0) = profile[maxOf(i - 1, 0)]
+            val (y1, r1) = profile[minOf(i + 1, profile.size - 1)]
+            val ny0 = -(r1 - r0)
+            val nr0 = y1 - y0
+            val len = sqrt(nr0 * nr0 + ny0 * ny0)
+            val nr = nr0 / len
+            val ny = ny0 / len
+            for (x in 0..radialSegments) {
+                val theta = x.toDouble() / radialSegments * 2 * PI
+                val s = sin(theta)
+                val c = cos(theta)
+                rows[i][x] = b.vertexCount
+                b.vertex(r * s, y, r * c, nr * s, ny, nr * c)
+            }
+        }
+        for (i in 0 until profile.size - 1) {
+            for (x in 0 until radialSegments) {
+                val lo0 = rows[i][x]
+                val lo1 = rows[i][x + 1]
+                val hi0 = rows[i + 1][x]
+                val hi1 = rows[i + 1][x + 1]
+                b.triangle(hi0, lo0, hi1)
+                b.triangle(lo0, lo1, hi1)
+            }
+        }
+        lidOf(b, profile.last(), top = true, radialSegments)
+        lidOf(b, profile.first(), top = false, radialSegments)
+        return b.build()
+    }
+
+    private fun lidOf(b: MeshBuilder, at: Pair<Double, Double>, top: Boolean, radialSegments: Int) {
+        val (y, r) = at
+        val ny = if (top) 1.0 else -1.0
+        val center = b.vertexCount
+        b.vertex(0.0, y, 0.0, 0.0, ny, 0.0)
+        for (x in 0..radialSegments) {
+            val theta = x.toDouble() / radialSegments * 2 * PI
+            b.vertex(r * sin(theta), y, r * cos(theta), 0.0, ny, 0.0)
+        }
+        for (x in 0 until radialSegments) {
+            if (top) b.triangle(center + 1 + x, center + 2 + x, center) else b.triangle(center + 2 + x, center + 1 + x, center)
+        }
+    }
+
+    /**
      * 球、または球の一部(SphereGeometry)。phi は y 軸まわり、theta は +y からの角度。
      * 頂点は (−r cos φ sin θ, r cos θ, r sin φ sin θ)。
      */
