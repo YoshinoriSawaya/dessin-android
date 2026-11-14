@@ -17,7 +17,7 @@
 | [E11](epics/E11-self-shadow.md) | 体に落ちる影 | 完了(実機での確認待ち) |
 | [E12](epics/E12-camera-mode.md) | カメラだけを操作するモード | 完了(実機での確認待ち) |
 | [E13](epics/E13-multi-doll.md) | 複数の人形 | 完了(実機での確認待ち) |
-| [E14](epics/E14-usage-feedback.md) | 使ってみて出た要望(体の形と骨盤の根) | 完了(実機での確認待ち。未リリース) |
+| [E14](epics/E14-usage-feedback.md) | 使ってみて出た要望(体の形と骨盤の根) | 完了(実機で確認済み。未リリース) |
 
 ## いまの状態(2026-11-14 時点)
 - 最新は v1.3.0(CHANGELOG、振り返りは docs/retrospectives/R04-v1.3.md)。実機(Pixel 10a)に入れてある
