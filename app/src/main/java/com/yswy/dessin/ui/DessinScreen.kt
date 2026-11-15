@@ -6,7 +6,9 @@ import kotlin.reflect.KProperty
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import com.yswy.dessin.core.editor.wheelZoom
-import com.yswy.dessin.core.editor.setAnchor
+import com.yswy.dessin.core.editor.anchorChoice
+import com.yswy.dessin.core.editor.toggleAnchor
+import com.yswy.dessin.core.skeleton.Anchor
 import com.yswy.dessin.core.editor.setSex
 import com.yswy.dessin.core.editor.setHandShape
 import android.util.Log
@@ -116,7 +118,6 @@ fun DessinScreen(start: EditorState) {
         onEditEnd = { endEdit() },
         onHandShape = { shape -> state = state.setHandShape(shape) },
         onSex = { sex -> state = state.setSex(sex) },
-        onAnchor = { anchor -> state = state.setAnchor(anchor) },
         onSwitchDoll = { i -> state = state.switchDoll(i) },
         onAddDoll = { state = state.addDoll(defaultBody.body()).fitView(aspect) },
         onRemoveDoll = { confirmRemoveDoll = true },
@@ -176,6 +177,10 @@ fun DessinScreen(start: EditorState) {
             ) {
                 ToolChip("カメラ", pressed = state.cameraOnly) { state = state.toggleCameraOnly() }
                 ToolChip("人形", pressed = state.dollMode) { state = state.toggleDollMode() }
+                // 根の切り替え(E16-02)。骨盤を置いているときだけ出し、押すたびに胸と骨盤を入れ替える。骨盤が根のときは押した見た目
+                state.anchorChoice?.let { current ->
+                    ToolChip("根: ${current.label}", pressed = current == Anchor.PELVIS) { state = state.toggleAnchor() }
+                }
                 // Undo・Redo(E15-01)。戻すときは画面の状態をそのまま差し替える(履歴に記録しない)
                 ToolChip("戻す", enabled = history.canUndo) { history.undo(screen).let { (h, s) -> history = h; screen = s } }
                 ToolChip("やり直す", enabled = history.canRedo) { history.redo(screen).let { (h, s) -> history = h; screen = s } }

@@ -5,6 +5,7 @@ import com.yswy.dessin.core.editor.EditorStateCodec
 import com.yswy.dessin.core.editor.anchorChoice
 import com.yswy.dessin.core.editor.loadPose
 import com.yswy.dessin.core.editor.setAnchor
+import com.yswy.dessin.core.editor.toggleAnchor
 import com.yswy.dessin.core.math.EPS
 import com.yswy.dessin.core.math.Quat
 import com.yswy.dessin.core.math.Ray
@@ -110,14 +111,25 @@ class AnchorTest {
         assertEquals(e, EditorStateCodec.decode(EditorStateCodec.encode(e)))
     }
 
+    // E16-02 で、根の切り替えは操作パネルの行(脇腹を選んでいるときだけ)から右上のボタンへ移った。
+    // 骨盤を置いていれば、どの部位を選んでいても切り替えられる
     @Test
-    fun 脇腹を選んでいて骨盤を置いているときだけ根を選べる() {
+    fun 骨盤を置いているときは選んでいる部位によらず根を切り替えられる() {
         val e = EditorState(skeleton = body)
-        assertNull(e.anchorChoice)
-        val flank = e.select("flank")
-        assertEquals(Anchor.CHEST, flank.anchorChoice)
-        assertEquals(Anchor.PELVIS, flank.setAnchor(Anchor.PELVIS).skeleton.anchor)
-        assertNull(EditorState().select("flank").anchorChoice)
-        assertEquals(e, e.setAnchor(Anchor.PELVIS))
+        for (id in listOf("rib", "flank", "pelvis", "thighL", "neck")) {
+            val s = e.select(id)
+            assertEquals(Anchor.CHEST, s.anchorChoice)
+            val toggled = s.toggleAnchor()
+            assertEquals(Anchor.PELVIS, toggled.skeleton.anchor)
+            assertEquals(Anchor.PELVIS, toggled.anchorChoice)
+            assertEquals(id, toggled.selected)
+            assertEquals(Anchor.CHEST, toggled.toggleAnchor().skeleton.anchor)
+        }
+        assertEquals(Anchor.PELVIS, e.setAnchor(Anchor.PELVIS).skeleton.anchor)
+        // 骨盤を置いていなければ出さず、切り替えない
+        val noPelvis = EditorState().select("flank")
+        assertNull(noPelvis.anchorChoice)
+        assertEquals(noPelvis, noPelvis.toggleAnchor())
+        assertEquals(noPelvis, noPelvis.setAnchor(Anchor.PELVIS))
     }
 }
