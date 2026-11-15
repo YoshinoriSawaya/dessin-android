@@ -18,7 +18,7 @@
 | [E12](epics/E12-camera-mode.md) | カメラだけを操作するモード | 完了(実機での確認待ち) |
 | [E13](epics/E13-multi-doll.md) | 複数の人形 | 完了(実機での確認待ち) |
 | [E14](epics/E14-usage-feedback.md) | 使ってみて出た要望(体の形と骨盤の根) | 完了 |
-| [E15](epics/E15-undo-mirror.md) | Undo と左右対称のコピー | 完了(実機での確認待ち。未リリース) |
+| [E15](epics/E15-undo-mirror.md) | Undo と左右対称のコピー | 完了(実機で確認済み。未リリース) |
 
 ## いまの状態(2026-11-15 時点)
 - 最新は v1.5.0(CHANGELOG、振り返りは docs/retrospectives/R06-v1.5.md)。実機(Pixel 10a)に入れてある
