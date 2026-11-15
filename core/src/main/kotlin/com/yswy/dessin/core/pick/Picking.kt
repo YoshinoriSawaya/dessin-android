@@ -83,7 +83,7 @@ fun pickPart(skeleton: Skeleton, selected: String, options: DisplayOptions, ray:
 fun pickDot(skeleton: Skeleton, selected: String, options: DisplayOptions, ray: Ray): Vec3? {
     if (drawPlan(skeleton, selected, options).guidePart != selected) return null
     val dot = skeleton.dotWorld(selected)
-    val parent = skeleton.worldTransforms().getValue(PartSpecs[selected].parent!!)
+    val parent = skeleton.worldTransforms().getValue(PartSpecs[skeleton.guideJoint(selected)].parent!!)
     // 玉は可動域の表示の中にあるので、親の向きに回っている。大きさは視点(レイの始点)からの距離で決まる
     val model = Mat4.compose(dot, parent.rotation, dotWorldRadius(ray.origin.distanceTo(dot)))
     return nearestHit(DOT_SPHERE, model, ray, doubleSided = false)?.point
@@ -92,9 +92,9 @@ fun pickDot(skeleton: Skeleton, selected: String, options: DisplayOptions, ray: 
 /** 選択中の部位の緑の範囲に当たった、最も手前の点(Web版の romPoint)。範囲を出していなければ null */
 fun romPoint(skeleton: Skeleton, selected: String, options: DisplayOptions, ray: Ray): Vec3? {
     if (drawPlan(skeleton, selected, options).guidePart != selected) return null
-    val spec = PartSpecs[selected]
-    val parent = skeleton.worldTransforms().getValue(spec.parent!!)
-    val area = guideAreas.getOrPut(selected) { guideMesh(spec).area }
+    // 範囲の形は動かす関節のもの(骨盤が根のときの胸・脇腹は、みぞおち・骨盤の関節。E16-01)
+    val joint = skeleton.guideJoint(selected)
+    val area = guideAreas.getOrPut(joint) { guideMesh(PartSpecs[joint]).area }
     val model = skeleton.guideMatrix(selected)
     return nearestHit(area, model, ray, doubleSided = true)?.point
 }
@@ -103,7 +103,9 @@ fun romPoint(skeleton: Skeleton, selected: String, options: DisplayOptions, ray:
 fun pickAtPress(skeleton: Skeleton, selected: String, options: DisplayOptions, ray: Ray): PressPick {
     var part = pickPart(skeleton, selected, options, ray)
     val rom = romPoint(skeleton, selected, options, ray)
-    if (rom != null && part != null && part == PartSpecs[selected].parent) part = null
+    // 骨盤が根のときの胸・脇腹は、骨盤の側の隣(動かす関節の部位)を親の代わりに選ばない(E16-01)
+    val behind = if (skeleton.isReversed(selected)) skeleton.guideJoint(selected) else PartSpecs[selected].parent
+    if (rom != null && part != null && part == behind) part = null
     return PressPick(part, rom)
 }
 

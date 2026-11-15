@@ -55,18 +55,20 @@ class AnchorTest {
         assertVec(w(noPelvis, "rib").position, w(noPelvis.withState("flank", bent), "rib").position)
     }
 
+    // E16-01 で、骨盤が根のときのみぞおちの操作は脇腹から胸へ移った(脇腹は骨盤の関節で動かす。WaistJointTest)。
+    // 玉と範囲の置き方は同じなので、胸を選んだときとして確かめる
     @Test
-    fun 骨盤が根なら脇腹の玉は胸の上向き_範囲は脇腹の向きに上下を反転して置く() {
+    fun 骨盤が根なら胸の玉は胸の上向き_範囲は脇腹の向きに上下を反転して置く() {
         val s = anchored.withState("flank", bent)
-        // 中心は脇腹の関節(みぞおち)のまま
-        assertVec(w(s, "flank").position, s.guideCenter("flank"))
+        // 中心は脇腹の関節(みぞおち)
+        assertVec(w(s, "flank").position, s.guideCenter("rib"))
         val chestUp = w(s, "rib").rotation.rotate(Vec3.Y)
-        assertVec(chestUp, (s.dotWorld("flank") - s.guideCenter("flank")).normalized())
-        assertEquals(s.guideRadius("flank"), s.dotWorld("flank").distanceTo(s.guideCenter("flank")), EPS)
+        assertVec(chestUp, (s.dotWorld("rib") - s.guideCenter("rib")).normalized())
+        assertEquals(s.guideRadius("rib"), s.dotWorld("rib").distanceTo(s.guideCenter("rib")), EPS)
         // 範囲の表示: 脇腹の向きで、上下(y)を反転。玉は範囲の上にある(反転した範囲で、状態の向きの点が玉)
-        val m = s.guideMatrix("flank")
+        val m = s.guideMatrix("rib")
         val onGuide = m.transformPoint(dotPosition(PartSpecs["flank"], s.state("flank")))
-        assertVec(s.dotWorld("flank"), onGuide)
+        assertVec(s.dotWorld("rib"), onGuide)
         // 胸が根のときは親(胸)の向きでそのまま
         val n = body.withState("flank", bent)
         assertVec(n.dotWorld("flank"), n.guideMatrix("flank").transformPoint(dotPosition(PartSpecs["flank"], n.state("flank"))))
