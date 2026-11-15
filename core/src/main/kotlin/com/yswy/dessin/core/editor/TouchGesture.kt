@@ -86,7 +86,8 @@ class TouchGesture {
         return when (mode) {
             Mode.PLACE -> {
                 val skeleton = state.skeleton
-                if (PartSpecs[state.selected].isRoot) {
+                // 骨盤が根のときの胸は、みぞおちで曲げる(E16-01)ので全体は動かさない
+                if (PartSpecs[skeleton.guideJoint(state.selected)].isRoot) {
                     val pos = skeleton.root.position
                     state.copy(skeleton = skeleton.withRoot(skeleton.root.copy(position = pos + cam.screenDelta(pos, dx, dy, height))))
                 } else if (skeleton.isAnchorRoot(state.selected)) {

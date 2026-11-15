@@ -27,8 +27,8 @@ data class JointTransform(val position: Vec3, val rotation: Quat, val scale: Dou
  * 人形全体の状態。不変で、操作は新しい Skeleton を返す。
  * 部位の id は PartSpecs と同じ。置いていない部位も状態と変換を持つ(半透明の表示に使う)。
  * hands は手の形(E08-02)。既定(パー)と違う手だけを持つ(等しさの比較を保存の前後で揃えるため)
- * anchor は操作の根(E10-01)。データはいつも胸を根に持ち、骨盤が根のときは脇腹を動かしても骨盤が止まるよう
- * 胸の置き方を補正する。ポーズには保存しない
+ * anchor は操作の根(E10-01)。データはいつも胸を根に持ち、骨盤が根のときは脇腹・骨盤の状態を変えても骨盤が止まるよう
+ * 胸の置き方を補正する。そのときの胸・脇腹は骨盤から逆にたどって動かす(E16-01。guideJoint)。ポーズには保存しない
  */
 data class Skeleton(
     val root: RootTransform,
@@ -84,16 +84,19 @@ data class Skeleton(
         return copy(placed = placed - removed.toSet(), states = states + resetStates, hands = hands - removed.toSet())
     }
 
-    /** 向きを戻す。胸は位置・回転・大きさを初期値に戻す(Web版の resetPart) */
+    /** 向きを戻す。胸は位置・回転・大きさを初期値に戻す(Web版の resetPart)。骨盤から逆にたどる部位は、動かす関節を戻す */
     fun reset(id: String): Skeleton {
-        val spec = PartSpecs[id]
-        return if (spec.isRoot) copy(root = RootTransform()) else withState(id, PartState.rest(spec))
+        val j = guideJoint(id)
+        return if (PartSpecs[j].isRoot) copy(root = RootTransform()) else withState(j, PartState.rest(PartSpecs[j]))
     }
 
-    /** 部位の状態を変える。骨盤が根で、脇腹(骨盤より根の側)を変えたときは骨盤が止まるよう胸の置き方を補正する */
+    /**
+     * 部位の状態を変える。骨盤が根で、胸と骨盤の間の関節(脇腹・骨盤の状態)を変えたときは、
+     * 骨盤が止まるよう胸の置き方を補正する
+     */
     fun withState(id: String, state: PartState): Skeleton {
         val changed = copy(states = states + (id to state))
-        return if (isAnchorSide(id)) changed.keepingPelvisOf(this) else changed
+        return if (pelvisAnchored && id in JOINTS_TO_PELVIS) changed.keepingPelvisOf(this) else changed
     }
 
     fun withAnchor(anchor: Anchor): Skeleton = copy(anchor = anchor)
@@ -101,8 +104,17 @@ data class Skeleton(
     /** 骨盤を根にしていて骨盤を置いている */
     private val pelvisAnchored: Boolean get() = anchor == Anchor.PELVIS && isPlaced(PELVIS)
 
-    /** 骨盤が根のときに、根との間にある部位(脇腹)。胸自身は含めない */
-    fun isAnchorSide(id: String): Boolean = pelvisAnchored && id in BETWEEN_ROOT_AND_PELVIS
+    /**
+     * 骨盤が根のときに、骨盤から逆にたどって動かす部位(胸・脇腹。E16-01)。
+     * 自分と骨盤の側の隣との間の関節(guideJoint)で動き、骨盤の側は止まったまま、自分と胸の側が動く
+     */
+    fun isReversed(id: String): Boolean = pelvisAnchored && id in REVERSED_JOINT
+
+    /**
+     * 選んだ部位を動かすときに状態を変える関節(可動域の表示もこの関節のもの)。ふつうは部位自身。
+     * 骨盤が根のときは、胸はみぞおち(脇腹の関節)、脇腹は骨盤との間(骨盤の関節)で動かす(E16-01)
+     */
+    fun guideJoint(id: String): String = if (isReversed(id)) REVERSED_JOINT.getValue(id) else id
 
     /**
      * 骨盤が根で、id が骨盤(E14-04)。胸が根のときの胸と同じく、操作で人形全体を動かす・回す
@@ -141,18 +153,18 @@ data class Skeleton(
 
     fun worldTransforms(): Map<String, JointTransform> = world
 
-    /** 可動域の表示の中心(関節のワールド位置) */
-    fun guideCenter(id: String): Vec3 = world.getValue(id).position
+    /** 可動域の表示の中心(動かす関節のワールド位置) */
+    fun guideCenter(id: String): Vec3 = world.getValue(guideJoint(id)).position
 
     /**
      * 可動域の表示(緑の範囲)の置き方。ふつうは親の向きに置く。
-     * 骨盤が根のときの脇腹は、脇腹自身の向き(骨盤と一緒に止まっている)に置き、上下を反転する。
-     * こうすると範囲は胸の上向きが取れる範囲になり、玉(胸の上向き)はその上に乗る(E10-01)
+     * 骨盤から逆にたどる部位(isReversed)は、動かす関節の部位の向き(骨盤の側で止まっている)に置き、上下を反転する。
+     * こうすると範囲は自分の上向きが取れる範囲になり、玉(自分の上向き)はその上に乗る(E10-01・E16-01)
      */
     fun guideMatrix(id: String): Mat4 {
         val s = guideScale(id)
-        return if (isAnchorSide(id)) {
-            Mat4.compose(guideCenter(id), world.getValue(id).rotation, Vec3(s, -s, s))
+        return if (isReversed(id)) {
+            Mat4.compose(guideCenter(id), world.getValue(guideJoint(id)).rotation, Vec3(s, -s, s))
         } else {
             Mat4.compose(guideCenter(id), parentOf(id).rotation, s)
         }
@@ -162,31 +174,31 @@ data class Skeleton(
      * 可動域の表示(緑の範囲・玉)の拡大率。親の拡大率と、部位自身の長さの倍率(E07-02)が効く。
      * 部位自身の拡大率(頭の大きさ)は効かない
      */
-    fun guideScale(id: String): Double = parentOf(id).scale * lengthScale(PartSpecs[id], body)
+    fun guideScale(id: String): Double = guideJoint(id).let { j -> parentOf(j).scale * lengthScale(PartSpecs[j], body) }
 
     /** 可動域の表示の半径 */
-    fun guideRadius(id: String): Double = PartSpecs[id].guideRadius * guideScale(id)
+    fun guideRadius(id: String): Double = PartSpecs[guideJoint(id)].guideRadius * guideScale(id)
 
-    /** 玉のワールド位置。骨盤が根のときの脇腹は、胸の上向き(E10-01) */
+    /** 玉のワールド位置。骨盤から逆にたどる部位は、自分の上向き(E10-01・E16-01) */
     fun dotWorld(id: String): Vec3 {
-        val spec = PartSpecs[id]
-        if (isAnchorSide(id)) return guideCenter(id) + world.getValue(spec.parent!!).rotation.rotate(Vec3.Y) * guideRadius(id)
-        return guideCenter(id) + parentOf(id).rotation.rotate(dotPosition(spec, state(id)) * guideScale(id))
+        if (isReversed(id)) return guideCenter(id) + world.getValue(id).rotation.rotate(Vec3.Y) * guideRadius(id)
+        return guideCenter(id) + parentOf(id).rotation.rotate(dotPosition(PartSpecs[id], state(id)) * guideScale(id))
     }
 
     /** ワールドの方向へ向ける。可動域に収める(Web版の aimPart) */
     fun aim(id: String, worldDir: Vec3): Skeleton {
-        val spec = PartSpecs[id]
+        val j = guideJoint(id)
+        val spec = PartSpecs[j]
         if (spec.isRoot) return this
-        val dirInParent = if (isAnchorSide(id)) {
-            // 骨盤が根のときの脇腹は、胸の上向きとして受け取る。脇腹は止まっているので、
-            // 脇腹から見た胸の上向き v になるような脇腹の回転を求め、その回転で脇腹の向きを決める
-            val v = world.getValue(id).rotation.inverse().rotate(worldDir.normalized())
+        val dirInParent = if (isReversed(id)) {
+            // 骨盤から逆にたどる部位は、自分の上向きとして受け取る。関節の部位 j(骨盤の側)は止まっているので、
+            // j から見た自分の上向き v になるような j の回転を求め、その回転で j の向きを決める
+            val v = world.getValue(j).rotation.inverse().rotate(worldDir.normalized())
             Quat.fromUnitVectors(v, Vec3.Y).rotate(spec.restDir)
         } else {
-            parentOf(id).rotation.inverse().rotate(worldDir)
+            parentOf(j).rotation.inverse().rotate(worldDir)
         }
-        return withState(id, aimPart(spec, state(id), dirInParent))
+        return withState(j, aimPart(spec, state(j), dirInParent))
     }
 
     /** ワールドの点へ向ける(Web版の aimAtPoint。緑の範囲のダブルタップ) */
@@ -198,22 +210,23 @@ data class Skeleton(
 
     /** 指のレイで向ける(Web版の dragPart) */
     fun drag(id: String, ray: Ray): Skeleton {
-        if (PartSpecs[id].isRoot) return this
+        if (PartSpecs[guideJoint(id)].isRoot) return this
         val dir = dragDirection(ray, guideCenter(id), guideRadius(id), dotWorld(id)) ?: return this
         return aim(id, dir)
     }
 
     /** 回転オーブで、ワールドの回転を加える(Web版の sphereRotate) */
     fun orb(id: String, rotInWorld: Quat): Skeleton {
-        val spec = PartSpecs[id]
+        val j = guideJoint(id)
+        val spec = PartSpecs[j]
         if (spec.isRoot) return withRoot(root.copy(rotation = orbRotateRoot(root.rotation, rotInWorld)))
         // 骨盤が根のときの骨盤は、骨盤の関節を中心に全体を回す(E14-04)
         if (isAnchorRoot(id)) return rotatedAbout(world.getValue(id).position, rotInWorld)
-        // 骨盤が根のときの脇腹は、上半身をその向きに回す(脇腹には逆の回転を加えると、補正で胸が回る)
-        val rot = if (isAnchorSide(id)) rotInWorld.inverse() else rotInWorld
-        val pq = parentOf(id).rotation
+        // 骨盤から逆にたどる部位は、自分と胸の側をその向きに回す(関節に逆の回転を加えると、補正で胸の側が回る)
+        val rot = if (isReversed(id)) rotInWorld.inverse() else rotInWorld
+        val pq = parentOf(j).rotation
         val rotInParent = pq.inverse() * rot * pq
-        return withState(id, orbRotate(spec, state(id), rotInParent))
+        return withState(j, orbRotate(spec, state(j), rotInParent))
     }
 
     private fun parentOf(id: String): JointTransform =
@@ -223,8 +236,10 @@ data class Skeleton(
 
     companion object {
         private const val PELVIS = "pelvis"
-        /** 胸と骨盤の間にある部位 */
-        private val BETWEEN_ROOT_AND_PELVIS = setOf("flank")
+        /** 骨盤が根のとき、骨盤から逆にたどって動かす部位と、そのとき動かす関節(E16-01) */
+        private val REVERSED_JOINT = mapOf("rib" to "flank", "flank" to PELVIS)
+        /** 胸から骨盤までの関節。骨盤が根のときに変えたら骨盤が止まるよう補正する */
+        private val JOINTS_TO_PELVIS = REVERSED_JOINT.values.toSet()
 
         /** 胸だけが置かれ、ほかの部位は休止状態 */
         fun initial(): Skeleton = Skeleton(

@@ -161,11 +161,10 @@ class DollRenderer : GLSurfaceView.Renderer {
     }
 
     private fun drawGuide(s: Scene, id: String) {
-        val spec = PartSpecs[id]
-        val world = s.skeleton.worldTransforms()
-        val parent = world.getValue(spec.parent!!)
-        val g = guides.getOrPut(id) {
-            val gm = guideMesh(spec)
+        // 範囲の形は動かす関節のもの(骨盤が根のときの胸・脇腹は、みぞおち・骨盤の関節。E16-01)
+        val joint = s.skeleton.guideJoint(id)
+        val g = guides.getOrPut(joint) {
+            val gm = guideMesh(PartSpecs[joint])
             GuideGpu(GpuMesh(gm.area.positions, FloatArray(0), gm.area.indices), GpuLines(gm.outline, GLES30.GL_LINE_LOOP))
         }
         GLES30.glDisable(GLES30.GL_DEPTH_TEST)

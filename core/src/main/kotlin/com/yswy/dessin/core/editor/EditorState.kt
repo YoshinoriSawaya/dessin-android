@@ -92,15 +92,18 @@ data class EditorState(
         return copy(skeleton = NaturalPose.unplacedNatural(skeleton.remove(selected))).select(parent)
     }
 
-    /** 選択中の部位の向きを戻す(Web版の「向きを戻す」)。胸は位置・回転・大きさを、ほかは自然な姿勢(E09)に戻す */
+    /**
+     * 選択中の部位の向きを戻す(Web版の「向きを戻す」)。胸は位置・回転・大きさを、ほかは自然な姿勢(E09)に戻す。
+     * 骨盤が根のときの胸・脇腹は、動かす関節(みぞおち・骨盤の関節)を自然な姿勢に戻す(E16-01)
+     */
     fun resetSelected(): EditorState {
-        val spec = PartSpecs[selected]
+        val spec = PartSpecs[skeleton.guideJoint(selected)]
         if (skeleton.isAnchorRoot(selected)) {
             // 骨盤が根のときの骨盤は、位置を保って骨盤をまっすぐ(ワールドの向きを初めの向き)に戻す(E14-04)
             val j = skeleton.worldTransforms().getValue(selected)
             return copy(skeleton = skeleton.rotatedAbout(j.position, j.rotation.inverse()))
         }
-        return copy(skeleton = if (spec.isRoot) skeleton.reset(selected) else skeleton.withState(selected, NaturalPose.state(spec)))
+        return copy(skeleton = if (spec.isRoot) skeleton.reset(selected) else skeleton.withState(spec.id, NaturalPose.state(spec)))
     }
 
     fun togglePanel(): EditorState = copy(panelOpen = !panelOpen)
@@ -116,7 +119,8 @@ data class EditorState(
     /** 選択中の部位の操作の説明(Web版の selInfo) */
     val selectionInfo: String
         get() {
-            val spec = PartSpecs[selected]
+            // 骨盤が根のときの胸・脇腹は、動かす関節の説明(E16-01)
+            val spec = PartSpecs[skeleton.guideJoint(selected)]
             return when {
                 spec.isRoot || skeleton.isAnchorRoot(selected) -> "ドラッグで画面上の位置を決めます。"
                 spec.hinge != null -> "緑の扇の中をドラッグ、または2回タップして曲げます。"
