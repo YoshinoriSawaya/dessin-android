@@ -22,13 +22,13 @@
 | [E16](epics/E16-pelvis-root-chain.md) | 骨盤が根のときの胴の関節 | 完了 |
 | [E17](epics/E17-knee-structure.md) | 膝の構造(転がり・回旋・膝蓋骨) | 完了(扇形の表示は取り下げ) |
 | [E18](epics/E18-stick.md) | 手に持たせる棒 | 完了 |
-| [E19](epics/E19-preset-poses.md) | プリセットのポーズ | 進行中 |
+| [E19](epics/E19-preset-poses.md) | プリセットのポーズ | 完了 |
 
 ## いまの状態(2026-11-19 時点)
-- 最新は v1.9.0(変更は CHANGELOG、振り返りは docs/retrospectives/R10-v1.9.md)。実機(Pixel 10a)に入れてある
+- 最新は v1.10.0(変更は CHANGELOG、振り返りは docs/retrospectives/R11-v1.10.md)。実機(Pixel 10a)に入れてある
 - これまでの機能は、実機で利用者が使って確認済み(v1.1.0・v1.2.0 の機能は、2026-11-19 に v1.9 まで使って問題なしと確認)。実機で見てほしいところ・決まっていないことは無い
 - 使いながら気づいたことや要望を下書き(staging)へ入れて進める
-- テスト: `./gradlew lint test assembleDebug` が通る(:core のテスト491件、止めているテストは無い。lint は既存の警告5件のみ)
+- テスト: `./gradlew lint test assembleDebug` が通る(:core のテスト498件、止めているテストは無い。lint は既存の警告5件のみ)
 - Web版は今後使わない。仕様の正典は docs/architecture.md と Android 版のコード。テストは Issue ごとに書く(CLAUDE.md)
 - ブランチは main だけで、GitHub(origin)と同じ。staging は空
 
@@ -56,6 +56,7 @@
 | v1.7.0 | 2026-11-15 | E16 |
 | v1.8.0 | 2026-11-19 | E17(E17-04 は取り下げ) |
 | v1.9.0 | 2026-11-19 | E18 |
+| v1.10.0 | 2026-11-19 | E19 |
 
 ## 未検証のまま残っていること
 - 実機での確認は利用者の操作感の評価に頼っている(エミュレータでは2本指の操作を試せない、実機の重さは測っていない)。各タスクの「未検証のまま残したこと」を参照

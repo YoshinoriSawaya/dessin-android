@@ -11,8 +11,8 @@ android {
         applicationId = "com.yswy.dessin"
         minSdk = 26
         targetSdk = 37
-        versionCode = 10
-        versionName = "1.9.0"
+        versionCode = 11
+        versionName = "1.10.0"
     }
 
     buildTypes {
