@@ -8,7 +8,7 @@
 - 同じ内容を複数箇所に書かない。迷ったら README=事実、architecture=設計、issues=経緯
 
 ## 技術方針
-- Kotlin + Jetpack Compose(UI)+ GLSurfaceView / OpenGL ES(3D描画)。構成は仮決定(`docs/architecture.md`)
+- Kotlin + Jetpack Compose(UI)+ GLSurfaceView / OpenGL ES(3D描画)。構成は `docs/architecture.md`
 - 計算ロジック(可動域・スイング/ツイスト・ピッキング用のレイ計算)は Android 非依存の純Kotlinに分離する
 - 失敗しうる処理(ポーズの読み込みなど)は例外を外に出さず結果型で返す。理由は内部ログ用で、利用者には短い文言だけを出す。例外を握りつぶさない
 
