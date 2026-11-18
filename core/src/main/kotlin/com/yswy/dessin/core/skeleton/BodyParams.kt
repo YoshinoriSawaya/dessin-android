@@ -140,6 +140,19 @@ fun pivotOf(spec: PartSpec, params: BodyParams): Vec3 =
     // ずれ無しは長さで判定する(-0.0 を含む成分の比較だと右側の部位がひざ扱いになっていた。2026-11-14 の不具合)
     if (spec.pivot.lengthSq() == 0.0) Vec3.ZERO else Vec3(0.0, params.kneeRoll, 0.0)
 
+/**
+ * ひざの転がりの割合(E17-02)。大腿骨の丸みが脛骨の台の上を転がる分の、滑りに対する割合。
+ * 0 なら滑るだけ(E06-02)、1 なら転がるだけ。実際の膝は転がりながら滑るので、その間の値にする
+ */
+const val KNEE_ROLLING = 0.4
+
+/**
+ * 転がりで接点が台の後ろへ移る分(E17-02)。すねの関節(台の中心)は、接点からすねの前向きにこれだけ離れる。
+ * 回転の中心がずれていない部位では 0
+ */
+fun rollingShift(spec: PartSpec, params: BodyParams, phi: Double): Double =
+    if (spec.pivot.lengthSq() == 0.0) 0.0 else params.kneeRoll * KNEE_ROLLING * phi
+
 /** 頭の大きさの基準。headSize = 1.0(100%)のときの頭は、v1 の頭のこの倍率(E07-01) */
 const val HEAD_BASE_SCALE = 0.7
 

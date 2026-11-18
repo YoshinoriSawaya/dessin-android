@@ -87,10 +87,11 @@ class BodyTypeTest {
         val attach = thigh.toWorld(PartSpecs["shinL"].attach)
         fun bentShin(kneeRoll: Double) =
             all.withBody(BodyParams(kneeRoll = kneeRoll)).withState("shinL", PartState(PI / 2, 0.0, 0.0)).guideCenter("shinL")
-        // ずれ 0 なら関節で回る。0.05 なら 90 度で後ろ 0.05・上 0.05
+        // ずれ 0 なら関節で回る。0.05 なら 90 度で後ろ 0.05・上 0.05。
+        // E17-02 で転がりの分(90° で下へ 0.05 × KNEE_ROLLING × π/2)が加わった
+        val rolling = 0.05 * KNEE_ROLLING * PI / 2
         assertVec(attach, bentShin(0.0))
-        assertVec(attach + Vec3(0.0, 0.05, -0.05), bentShin(0.05))
-        assertEquals(0.05 * sqrt(2.0), bentShin(0.05).distanceTo(attach), EPS)
+        assertVec(attach + Vec3(0.0, 0.05 - rolling, -0.05), bentShin(0.05))
     }
 
     @Test
