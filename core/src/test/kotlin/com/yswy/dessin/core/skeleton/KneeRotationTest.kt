@@ -118,4 +118,12 @@ class KneeRotationTest {
         val sk = (PoseCodec.decode(text) as PoseDecodeResult.Ok).skeleton
         assertEquals(-40.0 / 3 * D2R, sk.state("shinL").roll, 1e-9)
     }
+
+    @Test
+    fun ひねっても玉は曲げる面の上_可動域の表示はもとの扇() {
+        // E17-04(扇形の表示)は取り下げた。玉はすねの先で、ひねりでは動かない
+        assertEquals(dotPosition(shinL, PartState(PI / 2, 0.0, 0.0)), dotPosition(shinL, PartState(PI / 2, 0.0, -40 * D2R)))
+        val g = com.yswy.dessin.core.mesh.guideMesh(shinL)
+        (0 until g.area.vertexCount).forEach { assertEquals(0.0, g.area.vertex(it).x, 1e-6) }
+    }
 }
