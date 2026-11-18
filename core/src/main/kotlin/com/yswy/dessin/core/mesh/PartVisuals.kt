@@ -6,6 +6,9 @@ import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.skeleton.Adjust
 import com.yswy.dessin.core.skeleton.BodyParams
 import com.yswy.dessin.core.skeleton.HandShape
+import com.yswy.dessin.core.skeleton.KneePiece
+import com.yswy.dessin.core.skeleton.PATELLA_HALF_HEIGHT
+import com.yswy.dessin.core.skeleton.kneeCap
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.Sex
 import com.yswy.dessin.core.skeleton.Side
@@ -34,6 +37,7 @@ enum class BodyFeature { BREAST, MALE, FEMALE }
  * @property lines 正中線・輪郭の輪の管
  * @property handShape 手の形のどちらで描くか(E08-02)。null なら常に描く
  * @property feature 体型で出し分ける体の形(E08-04)。null なら常に描く
+ * @property knee 膝の部品(E17-03)。置き方は曲げ角から求める(meshWorldMatrix)。null ならふつうの部位の形
  */
 class PartMesh(
     val kind: MeshKind,
@@ -42,6 +46,7 @@ class PartMesh(
     val lines: List<Mesh>,
     val handShape: HandShape? = null,
     val feature: BodyFeature? = null,
+    val knee: KneePiece? = null,
 )
 
 /** メッシュの、関節の空間での置き方。拡大は軸ごと */
@@ -103,6 +108,8 @@ object PartVisuals {
      */
     fun placement(id: String, index: Int, body: BodyParams): MeshPlacement {
         val e = table.getValue(id)[index]
+        // 膝の部品は曲げ角で置き方が決まる(meshWorldMatrix)。ここでは伸ばさない
+        if (e.part.knee != null) return MeshPlacement(e.position, e.rotation, Vec3(1.0, 1.0, 1.0))
         val spec = PartSpecs[id]
         val k = lengthScale(spec, body)
         fun stretched(p: Vec3) = Vec3(p.x, p.y * k, p.z)
@@ -143,9 +150,9 @@ object PartVisuals {
         val out = ArrayList<Entry>()
         fun mk(
             mesh: Mesh, pos: Vec3, rot: Quat = Quat.IDENTITY, edges: Boolean, kind: MeshKind = MeshKind.BODY,
-            lines: List<Mesh> = emptyList(), hand: HandShape? = null, feature: BodyFeature? = null,
+            lines: List<Mesh> = emptyList(), hand: HandShape? = null, feature: BodyFeature? = null, knee: KneePiece? = null,
         ) {
-            out += Entry(PartMesh(kind, mesh, if (edges) edges(mesh, 30.0) else null, lines, hand, feature), pos, rot)
+            out += Entry(PartMesh(kind, mesh, if (edges) edges(mesh, 30.0) else null, lines, hand, feature, knee), pos, rot)
         }
         fun marker(r: Double) = mk(sph(r), Vec3.ZERO, edges = false, kind = MeshKind.MARKER)
         when (base) {
@@ -194,7 +201,12 @@ object PartVisuals {
             }
             "hip" -> mk(Primitives.cylinder(0.045, 0.045, 0.05, 20), Vec3(sg * 0.025, 0.0, 0.0), QZ90, edges = true)
             "thigh" -> { mk(cyl(0.052, 0.39), Vec3(0.0, -0.2, 0.0), edges = true, lines = cylLines(0.052, 0.39, ring = true)); marker(0.055) }
-            "shin" -> { mk(cyl(0.038, 0.37), Vec3(0.0, -0.19, 0.0), edges = true, lines = cylLines(0.038, 0.37, ring = true)); marker(0.044) }
+            "shin" -> {
+                mk(cyl(0.038, 0.37), Vec3(0.0, -0.19, 0.0), edges = true, lines = cylLines(0.038, 0.37, ring = true)); marker(0.044)
+                // 膝蓋骨(小さな楕円の板)と膝蓋腱(細い線)。置き方は曲げ角から求める(E17-03)
+                mk(Primitives.sphere(0.022, 16, 12).scaled(1.0, PATELLA_HALF_HEIGHT / 0.022, 0.42), Vec3.ZERO, edges = false, knee = KneePiece.PATELLA)
+                mk(Primitives.cylinder(0.0055, 0.0055, 1.0, 10), Vec3.ZERO, edges = false, knee = KneePiece.TENDON)
+            }
             "foot" -> {
                 // 足はかかとからつま先の付け根まで(z −0.05〜0.105)。かかとは横向きの円柱で丸める(E08-03)
                 mk(Primitives.box(0.075, 0.045, 0.1325), Vec3(0.0, -0.04, 0.03875), edges = true,
@@ -357,6 +369,7 @@ object PartVisuals {
 
 /** メッシュの空間からワールドへの行列 = 関節のワールド変換 × メッシュの置き方 */
 fun meshWorldMatrix(skeleton: Skeleton, id: String, index: Int): Mat4 {
+    PartVisuals.meshes(id)[index].knee?.let { return kneeMatrix(skeleton, id, it) }
     val j = skeleton.worldTransforms().getValue(id)
     val p = PartVisuals.placement(id, index, skeleton.body)
     return Mat4.compose(j.position, j.rotation, j.scale) * Mat4.compose(p.position, p.rotation, p.scale)
@@ -384,4 +397,23 @@ fun fitBounds(skeleton: Skeleton): Pair<Vec3, Vec3>? {
     }
     val l = lo ?: return null
     return l to hi!!
+}
+
+/**
+ * 膝の部品の、メッシュの空間からワールドへの行列(E17-03)。膝蓋骨と腱の位置はももの空間で求まるので、ももの変換に載せる。
+ * 腱は長さ1の円柱を、脛骨粗面から膝蓋骨の下端まで伸ばして置く
+ */
+private fun kneeMatrix(skeleton: Skeleton, shinId: String, piece: KneePiece): Mat4 {
+    val t = skeleton.worldTransforms().getValue(PartSpecs[shinId].parent!!)
+    val thigh = Mat4.compose(t.position, t.rotation, t.scale)
+    val c = kneeCap(skeleton, shinId)
+    return when (piece) {
+        KneePiece.PATELLA -> thigh * Mat4.compose(c.patellaCenter, c.patellaRotation, 1.0)
+        KneePiece.TENDON -> {
+            val d = c.lowerPole - c.tuberosity
+            val len = d.length()
+            val rot = if (len < 1e-9) Quat.IDENTITY else Quat.fromUnitVectors(Vec3.Y, d * (1 / len))
+            thigh * Mat4.compose((c.lowerPole + c.tuberosity) * 0.5, rot, Vec3(1.0, len, 1.0))
+        }
+    }
 }

@@ -20,7 +20,7 @@
 | [E14](epics/E14-usage-feedback.md) | 使ってみて出た要望(体の形と骨盤の根) | 完了 |
 | [E15](epics/E15-undo-mirror.md) | Undo と左右対称のコピー | 完了 |
 | [E16](epics/E16-pelvis-root-chain.md) | 骨盤が根のときの胴の関節 | 完了 |
-| [E17](epics/E17-knee-structure.md) | 膝の構造(転がり・回旋・膝蓋骨) | 進行中 |
+| [E17](epics/E17-knee-structure.md) | 膝の構造(転がり・回旋・膝蓋骨) | 完了(実機での確認待ち) |
 
 ## いまの状態(2026-11-15 時点)
 - 最新は v1.7.0(CHANGELOG、振り返りは docs/retrospectives/R08-v1.7.md)。実機(Pixel 10a)に入れてある
