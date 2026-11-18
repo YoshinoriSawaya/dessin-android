@@ -49,3 +49,19 @@ fun phiMax(spec: PartSpec, psi: Double): Double {
     val cone = requireNotNull(spec.cone) { "${spec.id} は可動域を持たない" }
     return phiMax(cone, psi)
 }
+
+/**
+ * 曲げ角 phi のときのひねりの範囲(E17-01)。ふつうは定義の roll のまま。
+ * すねは伸ばしていると 0 で、rollFullBend まで曲げ角に比例して広がる
+ */
+fun rollRange(spec: PartSpec, phi: Double): RollRange {
+    val full = spec.rollFullBend ?: return spec.roll
+    val k = (phi / full).coerceIn(0.0, 1.0)
+    return RollRange(spec.roll.min * k, spec.roll.max * k)
+}
+
+/** ひねりを曲げ角の範囲に収める */
+fun clampRoll(spec: PartSpec, state: PartState): PartState {
+    val r = rollRange(spec, state.phi)
+    return state.copy(roll = state.roll.coerceIn(r.min, r.max))
+}

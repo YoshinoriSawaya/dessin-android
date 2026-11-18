@@ -47,10 +47,14 @@ data class Skeleton(
                 JointTransform(root.position, root.rotation, root.scale * body.height)
             } else {
                 val parent = out.getValue(spec.parent!!)
-                val local = localRotation(spec, state(spec.id))
-                // 回転の中心が関節からずれている部位(ひざ)は、中心のまわりに回した分だけ関節が動く
+                val st = state(spec.id)
+                val local = localRotation(spec, st)
+                // 回転の中心が関節からずれている部位(ひざ)は、中心のまわりに回した分だけ関節が動く(滑り。E06-02)。
+                // さらに転がりの分だけ、すねの前向き(ひねりを除いた曲げの向き)へずれる(E17-02)
                 val pivot = pivotOf(spec, body)
-                val joint = attachOf(spec, body) + pivot + local.rotate(-pivot)
+                val rolling = rollingShift(spec, body, st.phi)
+                val roll = if (rolling == 0.0) Vec3.ZERO else localRotation(spec, st.copy(roll = 0.0)).rotate(Vec3(0.0, 0.0, rolling))
+                val joint = attachOf(spec, body) + pivot + local.rotate(-pivot) + roll
                 JointTransform(
                     parent.toWorld(joint),
                     parent.rotation * local,

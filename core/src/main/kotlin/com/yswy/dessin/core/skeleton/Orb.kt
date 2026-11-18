@@ -25,7 +25,8 @@ fun orbRotate(spec: PartSpec, current: PartState, rotInParent: Quat): PartState 
     val twist = if (tl < 1e-6) Quat.IDENTITY else Quat(DOWN.x * sAx / tl, DOWN.y * sAx / tl, DOWN.z * sAx / tl, rb.w / tl)
     val swing = rb * twist.inverse()
     val aimed = aimPart(spec, current, qb.rotate(swing.rotate(DOWN)))
-    return aimed.copy(roll = roll.coerceIn(spec.roll.min, spec.roll.max))
+    val range = rollRange(spec, aimed.phi)
+    return aimed.copy(roll = roll.coerceIn(range.min, range.max))
 }
 
 /** 根(胸)は可動域が無いので、ワールドの回転をそのまま後から掛ける */

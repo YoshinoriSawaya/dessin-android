@@ -70,8 +70,10 @@ class KneeRollTest {
     fun 曲げるとすねの付け根が後ろ上へ移る() {
         val thigh = legs.worldTransforms().getValue("thighL")
         val bent = legs.withState("shinL", PartState(PI / 2, 0.0, 0.0))
-        // 90 度曲げると、もとの関節から後ろ(−z)へ 0.03、上へ 0.03
-        assertVec(thigh.toWorld(PartSpecs["shinL"].attach + Vec3(0.0, 0.03, -0.03)), bent.guideCenter("shinL"))
+        // 90 度曲げると、もとの関節から後ろ(−z)へ 0.03、上へ 0.03。
+        // E17-02 で転がりの分(すねの前 = 90° で下へ 0.03 × KNEE_ROLLING × π/2)が加わった
+        val rolling = 0.03 * KNEE_ROLLING * PI / 2
+        assertVec(thigh.toWorld(PartSpecs["shinL"].attach + Vec3(0.0, 0.03 - rolling, -0.03)), bent.guideCenter("shinL"))
     }
 
     @Test

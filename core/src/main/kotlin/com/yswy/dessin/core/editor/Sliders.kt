@@ -5,6 +5,8 @@ import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.skeleton.Adjust
 import com.yswy.dessin.core.skeleton.BodyParams
 import com.yswy.dessin.core.skeleton.PartSpecs
+import com.yswy.dessin.core.skeleton.clampRoll
+import com.yswy.dessin.core.skeleton.rollRange
 import com.yswy.dessin.core.skeleton.lengthScale
 import kotlin.math.PI
 import kotlin.math.roundToInt
@@ -88,7 +90,11 @@ val EditorState.sliders: List<Slider>
                 skeleton.isAnchorRoot(selected) -> addAll(tiltSliders(skeleton.worldTransforms().getValue(selected).rotation))
                 // 骨盤が根のときの脇腹は、骨盤の関節のひねり(E16-01)
                 skeleton.isReversed(selected) -> add(reversedRoll())
-                else -> add(Slider(SliderKind.ROLL, "ひねり", deg(spec.roll.min), deg(spec.roll.max), deg(skeleton.state(selected).roll), "°"))
+                else -> {
+                    // すねは曲げ角で範囲が変わる(E17-01)
+                    val r = rollRange(spec, skeleton.state(selected).phi)
+                    add(Slider(SliderKind.ROLL, "ひねり", deg(r.min), deg(r.max), deg(skeleton.state(selected).roll), "°"))
+                }
             }
             when (spec.adjust) {
                 Adjust.HEAD_SIZE -> add(Slider(SliderKind.HEAD_SIZE, "大きさ", 60, 140, (body.headSize * 100).roundToInt(), "%"))
@@ -139,7 +145,7 @@ fun EditorState.applySlider(kind: SliderKind, value: Int): EditorState {
         SliderKind.ROLL -> {
             val j = s.guideJoint(selected)
             val sign = if (s.isReversed(selected)) -1 else 1
-            copy(skeleton = s.withState(j, s.state(j).copy(roll = sign * value * D2R)))
+            copy(skeleton = s.withState(j, clampRoll(PartSpecs[j], s.state(j).copy(roll = sign * value * D2R))))
         }
         SliderKind.HEAD_SIZE -> copy(skeleton = s.withBody(s.body.copy(headSize = value / 100.0)))
         SliderKind.SHOULDER_WIDTH -> copy(skeleton = s.withBody(s.body.copy(shoulderWidth = value / 100.0)))
