@@ -5,6 +5,7 @@ import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.skeleton.Adjust
 import com.yswy.dessin.core.skeleton.BodyParams
 import com.yswy.dessin.core.skeleton.PartSpecs
+import com.yswy.dessin.core.skeleton.StickShape
 import com.yswy.dessin.core.skeleton.clampRoll
 import com.yswy.dessin.core.skeleton.rollRange
 import com.yswy.dessin.core.skeleton.lengthScale
@@ -20,6 +21,8 @@ enum class SliderKind {
     BREAST_SIZE,
     // E14-03: 胸・脇腹・骨盤の長さ(選んだ部位の長さ)
     TORSO_LENGTH,
+    // E18-01: 棒の長さと握る位置
+    STICK_LENGTH, STICK_GRIP,
 }
 
 /**
@@ -116,6 +119,11 @@ val EditorState.sliders: List<Slider>
                     add(Slider(SliderKind.KNEE_ROLL, "ひざの転がり", 0, 60, mm(body.kneeRoll), "mm"))
                 }
                 "flank", "pelvis" -> add(torsoLength(body))
+                "stick" -> {
+                    val st = skeleton.stickShape(selected)
+                    add(Slider(SliderKind.STICK_LENGTH, "長さ", mm(StickShape.LENGTH_RANGE.start), mm(StickShape.LENGTH_RANGE.endInclusive), mm(st.length), "mm"))
+                    add(Slider(SliderKind.STICK_GRIP, "握る位置", 0, 100, pct(st.grip), "%"))
+                }
             }
         }
     }
@@ -156,6 +164,8 @@ fun EditorState.applySlider(kind: SliderKind, value: Int): EditorState {
         SliderKind.NECK_OFFSET -> copy(skeleton = s.withBody(s.body.copy(neckOffset = value / 1000.0)))
         SliderKind.KNEE_ROLL -> copy(skeleton = s.withBody(s.body.copy(kneeRoll = value / 1000.0)))
         SliderKind.BREAST_SIZE -> copy(skeleton = s.withBody(s.body.copy(breastSize = value / 100.0)))
+        SliderKind.STICK_LENGTH -> copy(skeleton = s.withStickShape(selected, s.stickShape(selected).copy(length = value / 1000.0)))
+        SliderKind.STICK_GRIP -> copy(skeleton = s.withStickShape(selected, s.stickShape(selected).copy(grip = value / 100.0)))
         SliderKind.TORSO_LENGTH -> {
             val k = value / 100.0
             val b = s.body

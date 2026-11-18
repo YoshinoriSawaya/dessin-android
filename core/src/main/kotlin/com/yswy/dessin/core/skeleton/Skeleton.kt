@@ -27,6 +27,7 @@ data class JointTransform(val position: Vec3, val rotation: Quat, val scale: Dou
  * 人形全体の状態。不変で、操作は新しい Skeleton を返す。
  * 部位の id は PartSpecs と同じ。置いていない部位も状態と変換を持つ(半透明の表示に使う)。
  * hands は手の形(E08-02)。既定(パー)と違う手だけを持つ(等しさの比較を保存の前後で揃えるため)
+ * sticks は棒の形(長さと握る位置。E18-01)。手の形と同じく既定と違うものだけを持つ
  * anchor は操作の根(E10-01)。データはいつも胸を根に持ち、骨盤が根のときは脇腹・骨盤の状態を変えても骨盤が止まるよう
  * 胸の置き方を補正する。そのときの胸・脇腹は骨盤から逆にたどって動かす(E16-01。guideJoint)。ポーズには保存しない
  */
@@ -36,6 +37,7 @@ data class Skeleton(
     val placed: Set<String>,
     val body: BodyParams,
     val hands: Map<String, HandShape> = emptyMap(),
+    val sticks: Map<String, StickShape> = emptyMap(),
     val anchor: Anchor = Anchor.CHEST,
 ) {
     /** 全関節のワールド変換。親から順に合成する */
@@ -85,7 +87,7 @@ data class Skeleton(
         val removed = subtree(id)
         val resetStates = removed.associateWith { PartState.rest(PartSpecs[it]) }
         // 手を外したら手の形も既定(パー)に戻す(E08-02)
-        return copy(placed = placed - removed.toSet(), states = states + resetStates, hands = hands - removed.toSet())
+        return copy(placed = placed - removed.toSet(), states = states + resetStates, hands = hands - removed.toSet(), sticks = sticks - removed.toSet())
     }
 
     /** 向きを戻す。胸は位置・回転・大きさを初期値に戻す(Web版の resetPart)。骨盤から逆にたどる部位は、動かす関節を戻す */
@@ -153,6 +155,16 @@ data class Skeleton(
     fun withHandShape(id: String, shape: HandShape): Skeleton {
         require(isHand(id)) { "$id は手ではない" }
         return copy(hands = if (shape == HandShape.DEFAULT) hands - id else hands + (id to shape))
+    }
+
+    /** 棒の形(E18-01)。棒でない部位は既定 */
+    fun stickShape(id: String): StickShape = sticks[id] ?: StickShape.DEFAULT
+
+    /** 棒の形を変える。範囲に収める */
+    fun withStickShape(id: String, shape: StickShape): Skeleton {
+        require(isStick(id)) { "$id は棒ではない" }
+        val s = shape.clamped()
+        return copy(sticks = if (s == StickShape.DEFAULT) sticks - id else sticks + (id to s))
     }
 
     fun worldTransforms(): Map<String, JointTransform> = world

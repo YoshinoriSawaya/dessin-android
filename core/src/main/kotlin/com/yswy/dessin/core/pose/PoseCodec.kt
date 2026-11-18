@@ -11,6 +11,8 @@ import com.yswy.dessin.core.skeleton.RootTransform
 import com.yswy.dessin.core.skeleton.Skeleton
 import com.yswy.dessin.core.skeleton.clampRoll
 import com.yswy.dessin.core.skeleton.isHand
+import com.yswy.dessin.core.skeleton.isStick
+import com.yswy.dessin.core.skeleton.StickShape
 import com.yswy.dessin.core.skeleton.phiMax
 import kotlin.math.abs
 import kotlin.math.sqrt
@@ -30,6 +32,7 @@ sealed interface PoseDecodeResult {
  * root <px> <py> <pz> <qx> <qy> <qz> <qw> <scale>
  * part <id> <置いたか 0|1> <phi> <psi> <roll>
  * hand <handL|handR> <open|fist>      ← 手の形(E08-02)。無ければパー
+ * stick <stickL|stickR> <長さ> <握る位置>   ← 棒の形(E18-01。版4)。無ければ既定
  * ```
  *
  * 読み込みでは、形式の誤りはエラーにし、値は範囲に収める(可動域、体型と胸の大きさの範囲、回転の正規化)。
@@ -40,8 +43,8 @@ sealed interface PoseDecodeResult {
  */
 object PoseCodec {
     const val HEADER = "dessin-pose"
-    /** 版3: 体型の行を外した(E07-03)。版2: 脇腹(flank)を足し、骨盤の親を脇腹にした(E05-01)。版1・2も読める */
-    const val VERSION = 3
+    /** 版4: 棒(部位と stick の行)を足した(E18-01)。版3: 体型の行を外した(E07-03)。版2: 脇腹(flank)を足し、骨盤の親を脇腹にした(E05-01)。版1・2も読める */
+    const val VERSION = 4
 
     fun encode(skeleton: Skeleton): String = buildString {
         appendLine("$HEADER $VERSION")
@@ -53,6 +56,7 @@ object PoseCodec {
             appendLine(listOf("part", spec.id, placed, s.phi, s.psi, s.roll).joinToString(" "))
         }
         PartSpecs.all.filter { isHand(it.id) }.forEach { appendLine("hand ${it.id} ${skeleton.handShape(it.id).code}") }
+        PartSpecs.all.filter { isStick(it.id) }.forEach { skeleton.stickShape(it.id).let { s -> appendLine("stick ${it.id} ${s.length} ${s.grip}") } }
     }
 
     fun decode(text: String): PoseDecodeResult = try {
@@ -75,6 +79,7 @@ object PoseCodec {
         val flagged = mutableSetOf<String>()
         val states = mutableMapOf<String, PartState>()
         val hands = mutableMapOf<String, HandShape>()
+        val sticks = mutableMapOf<String, StickShape>()
         for (line in lines.drop(1)) {
             val t = line.split(WS)
             when (t[0]) {
@@ -111,6 +116,12 @@ object PoseCodec {
                     val shape = HandShape.ofCode(t[2]) ?: throw PoseFormatException("知らない手の形: $line")
                     if (isHand(t[1])) hands[t[1]] = shape
                 }
+                "stick" -> {
+                    if (version < 4) throw PoseFormatException("版4より前に棒の行は無い: $line")
+                    if (t.size != 4) throw PoseFormatException("項目の数が違う: $line")
+                    val n = numbers(line, t.drop(1), 2)
+                    if (isStick(t[1])) sticks[t[1]] = StickShape(n[0], n[1])
+                }
                 else -> throw PoseFormatException("知らない行: $line")
             }
         }
@@ -126,6 +137,7 @@ object PoseCodec {
         }
         // 手の形は置いた手だけに残す(外した手はパー)
         hands.forEach { (id, shape) -> if (skeleton.isPlaced(id)) skeleton = skeleton.withHandShape(id, shape) }
+        sticks.forEach { (id, shape) -> if (skeleton.isPlaced(id)) skeleton = skeleton.withStickShape(id, shape) }
         return skeleton
     }
 

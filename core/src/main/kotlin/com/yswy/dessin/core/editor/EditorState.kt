@@ -3,6 +3,8 @@ package com.yswy.dessin.core.editor
 import com.yswy.dessin.core.camera.OrbitCamera
 import com.yswy.dessin.core.render.DisplayOptions
 import com.yswy.dessin.core.skeleton.BodyParams
+import com.yswy.dessin.core.skeleton.HandShape
+import com.yswy.dessin.core.skeleton.isStick
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.Skeleton
 
@@ -80,7 +82,10 @@ data class EditorState(
     fun select(id: String): EditorState {
         if (!skeleton.isAvailable(id)) return this
         if (skeleton.isPlaced(id)) return copy(selected = id)
-        return copy(skeleton = skeleton.place(id).withState(id, NaturalPose.state(PartSpecs[id])), selected = id)
+        val placed = skeleton.place(id).withState(id, NaturalPose.state(PartSpecs[id]))
+        // 棒を置いたら、持つ手をグーにする(E18-01)
+        val held = if (isStick(id)) placed.withHandShape(PartSpecs[id].parent!!, HandShape.FIST) else placed
+        return copy(skeleton = held, selected = id)
     }
 
     /** 選択中の部位は外せるか(胸は外せない) */
@@ -149,7 +154,7 @@ data class EditorState(
             listOf("upperArmL", "upperArmR", "head", "pelvis"),
             listOf("forearmL", "forearmR", "hipL", "hipR"),
             listOf("handL", "handR", "thighL", "thighR"),
-            listOf("shinL", "shinR"),
+            listOf("shinL", "shinR", "stickL", "stickR"),
             listOf("footL", "footR"),
             listOf("toeL", "toeR"),
         )

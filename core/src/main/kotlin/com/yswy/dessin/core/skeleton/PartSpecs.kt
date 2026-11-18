@@ -4,7 +4,7 @@ import com.yswy.dessin.core.math.Vec3
 import kotlin.math.PI
 
 /**
- * 全23部位の定義(E08-03 でつま先を足した)。値は docs/web-reference.html の spec(...) を正とし、左側の値で書く。
+ * 全25部位の定義(E08-03 でつま先を、E18-01 で棒を足した)。値は docs/web-reference.html の spec(...) を正とし、左側の値で書く。
  * 右側は取り付け位置・休止方向の x を反転し、コーンの ±x を入れ替え、ロールを鏡像にする。
  */
 object PartSpecs {
@@ -45,6 +45,8 @@ object PartSpecs {
             // つま先は足の前の付け根(親指の付け根の高さ)で曲がる。上へ 60°、下へ 30°(E08-03)
             add(sided("toe", "つま先", "foot$s", v(0, -0.045, 0.105), v(0, 0, 1), 0.045, 0.08, null, roll(0, 0),
                 hinge = Hinge(TOE_PSI, -30 * D2R, 60 * D2R), ref = Vec3.Y))
+            // 手に持たせる棒(E18-01)。拳の中(握りの中心)で、指の中を通る向き(前 +z)が休止方向。±45°・ひねり ±90°
+            add(sided("stick", "棒", "hand$s", v(-0.006, -0.045, 0), v(0, 0, 1), 0.6, 0.2, cone(45, 45, 45, 45), roll(-90, 90), ref = Vec3.Y))
         }
     }
 

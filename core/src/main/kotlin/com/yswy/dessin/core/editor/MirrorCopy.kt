@@ -5,6 +5,7 @@ import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.PartState
 import com.yswy.dessin.core.skeleton.Skeleton
 import com.yswy.dessin.core.skeleton.isHand
+import com.yswy.dessin.core.skeleton.isStick
 
 /** 左右の部位の反対側の id(upperArmL ↔ upperArmR) */
 private fun oppositeOf(id: String): String = id.dropLast(1) + if (id.endsWith("L")) "R" else "L"
@@ -27,7 +28,7 @@ val EditorState.canMirror: Boolean get() = PartSpecs[selected].side != null && s
  * 選択中の部位とその先を、反対側へ鏡写しにする(E15-02)。選択は変えない。
  * - 反対側の親が置かれていなければ、親も自然な姿勢(E09)で置く(選んだ部位より根の側は写さない)
  * - 写す元で置いていない部位は、反対側でも外す
- * - 手の形も写す
+ * - 手の形と棒の形(E18-01)も写す
  */
 fun EditorState.mirrorSelected(): EditorState {
     if (!canMirror) return this
@@ -45,6 +46,7 @@ fun EditorState.mirrorSelected(): EditorState {
         }
         sk = sk.place(dst).withState(dst, mirroredState(PartSpecs[dst], skeleton.state(src)))
         if (isHand(dst)) sk = sk.withHandShape(dst, skeleton.handShape(src))
+        if (isStick(dst)) sk = sk.withStickShape(dst, skeleton.stickShape(src))
     }
     return copy(skeleton = sk)
 }
