@@ -27,6 +27,16 @@ fun localRotation(spec: PartSpec, state: PartState): Quat {
     return qb * swing * roll * qb.inverse()
 }
 
+/**
+ * 可動域の表示の上の向き(基準フレーム)。ふつうは dirVec(phi, psi)。
+ * ひねりの範囲が曲げ角で変わる部位(すね)は、曲げる面の向きを基準フレームの y 軸まわりにひねりの分だけ回す(E17-04)。
+ * 曲げ角が半径方向、ひねりが角度方向の扇形になる。向きは左の外旋(−)で +x、右の外旋(+)で −x
+ */
+fun guideDir(spec: PartSpec, phi: Double, psi: Double, roll: Double): Vec3 {
+    val d = dirVec(phi, psi)
+    return if (spec.rollFullBend == null) d else Quat.fromAxisAngle(Vec3.Y, roll).rotate(d)
+}
+
 /** 玉(ドラッグする点)の位置。親の空間で、関節からの相対位置 */
 fun dotPosition(spec: PartSpec, state: PartState): Vec3 =
-    baseQuat(spec.restDir, spec.ref).rotate(dirVec(state.phi, state.psi)) * spec.guideRadius
+    baseQuat(spec.restDir, spec.ref).rotate(guideDir(spec, state.phi, state.psi, state.roll)) * spec.guideRadius

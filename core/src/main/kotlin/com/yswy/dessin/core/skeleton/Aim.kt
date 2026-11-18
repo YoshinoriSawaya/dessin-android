@@ -1,5 +1,6 @@
 package com.yswy.dessin.core.skeleton
 
+import com.yswy.dessin.core.math.Quat
 import com.yswy.dessin.core.math.Vec3
 import kotlin.math.acos
 import kotlin.math.atan2
@@ -17,6 +18,14 @@ import kotlin.math.min
 fun aimPart(spec: PartSpec, current: PartState, dirInParent: Vec3): PartState {
     val d = baseQuat(spec.restDir, spec.ref).inverse().rotate(dirInParent.normalized())
     val hinge = spec.hinge
+    if (hinge != null && spec.rollFullBend != null) {
+        // 扇形の可動域(すね。E17-04)は曲げ角が半径方向なので、軸(−y)からの角度を曲げ角にする。
+        // 玉はひねりの分だけ回して出しているので、その分を戻して曲げる側(後ろ)か反対側かを決める
+        val u = Quat.fromAxisAngle(Vec3.Y, -current.roll).rotate(d)
+        val a = acos((-d.y).coerceIn(-1.0, 1.0))
+        val bendSide = u.z * -cos(hinge.psi) >= 0.0
+        return clampRoll(spec, current.copy(phi = (if (bendSide) a else -a).coerceIn(hinge.min, hinge.max)))
+    }
     if (hinge != null) {
         val hx = -cos(hinge.psi)
         val phi = atan2(d.z * hx, -d.y).coerceIn(hinge.min, hinge.max)
