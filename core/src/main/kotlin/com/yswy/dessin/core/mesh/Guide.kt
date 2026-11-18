@@ -3,9 +3,6 @@ package com.yswy.dessin.core.mesh
 import com.yswy.dessin.core.skeleton.PartSpec
 import com.yswy.dessin.core.skeleton.baseQuat
 import com.yswy.dessin.core.skeleton.dirVec
-import com.yswy.dessin.core.skeleton.guideDir
-import com.yswy.dessin.core.skeleton.rollRange
-import com.yswy.dessin.core.math.Vec3
 import com.yswy.dessin.core.skeleton.phiMax
 import kotlin.math.PI
 
@@ -25,27 +22,7 @@ fun guideMesh(spec: PartSpec): GuideMesh {
     val outline = ArrayList<Float>()
     fun line(x: Double, y: Double, z: Double) { outline += x.toFloat(); outline += y.toFloat(); outline += z.toFloat() }
     val hinge = spec.hinge
-    if (hinge != null && spec.rollFullBend != null) {
-        // 扇形(E17-04): 曲げ角 i 列 × ひねり j 行の格子。ひねりの範囲は曲げ角で変わる
-        val n = 30
-        val m = 12
-        fun fan(i: Int, j: Int): Vec3 {
-            val phi = hinge.min + (hinge.max - hinge.min) * i / n
-            val rr = rollRange(spec, phi)
-            return qb.rotate(guideDir(spec, phi, hinge.psi, rr.min + (rr.max - rr.min) * j / m)) * rv
-        }
-        b.vertex(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-        for (i in 0..n) for (j in 0..m) fan(i, j).let { b.vertex(it.x, it.y, it.z, 0.0, 0.0, 0.0) }
-        fun idx(i: Int, j: Int) = 1 + i * (m + 1) + j
-        for (i in 0 until n) for (j in 0 until m) {
-            b.triangle(idx(i, j), idx(i + 1, j), idx(i, j + 1))
-            b.triangle(idx(i, j + 1), idx(i + 1, j), idx(i + 1, j + 1))
-        }
-        // 縁: 外の縁を曲げる向きに、曲げ切った端をひねりの向きに、内の縁を戻る
-        for (i in 0..n) fan(i, 0).let { line(it.x, it.y, it.z) }
-        for (j in 1..m) fan(n, j).let { line(it.x, it.y, it.z) }
-        for (i in n - 1 downTo 0) fan(i, m).let { line(it.x, it.y, it.z) }
-    } else if (hinge != null) {
+    if (hinge != null) {
         val n = 30
         b.vertex(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         line(0.0, 0.0, 0.0)
