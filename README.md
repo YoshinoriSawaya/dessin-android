@@ -2,6 +2,8 @@
 
 構図・下絵用の3Dデッサン人形ツール(Android / Kotlin)。
 
+リポジトリ: https://github.com/YoshinoriSawaya/dessin-android
+
 ## 現状
 - 最新の版と変更の履歴は `CHANGELOG.md`、作業の現状・実機で見てほしいところ・次の作業の候補は `docs/issues/README.md`
 
