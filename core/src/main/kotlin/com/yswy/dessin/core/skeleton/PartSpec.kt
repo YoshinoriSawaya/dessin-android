@@ -35,6 +35,8 @@ data class RollRange(val min: Double, val max: Double) {
  * @property length 部位の長さ(Web版の L)
  * @property guideRadius 可動域の表示と玉の半径(Web版の rVis)
  * @property pivot 回転の中心の、関節からのずれ(親の空間)。ひざは大腿骨の丸みの中心で回る(E06-02)。ふつうは 0
+ * @property rollFullBend ひねりの範囲が曲げ角で広がる部位(すね。E17-01)の、範囲が roll いっぱいになる曲げ角。
+ *   伸ばしているときは 0 で、そこまで曲げ角に比例して広がる。null なら曲げ角によらず roll
  */
 data class PartSpec(
     val id: String,
@@ -51,6 +53,7 @@ data class PartSpec(
     val roll: RollRange,
     val adjust: Adjust?,
     val pivot: Vec3 = Vec3.ZERO,
+    val rollFullBend: Double? = null,
 ) {
     val isRoot: Boolean get() = parent == null
 }

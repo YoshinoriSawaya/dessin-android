@@ -9,6 +9,7 @@ import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.PartState
 import com.yswy.dessin.core.skeleton.RootTransform
 import com.yswy.dessin.core.skeleton.Skeleton
+import com.yswy.dessin.core.skeleton.clampRoll
 import com.yswy.dessin.core.skeleton.isHand
 import com.yswy.dessin.core.skeleton.phiMax
 import kotlin.math.abs
@@ -140,10 +141,11 @@ object PoseCodec {
 
     /** 可動域に収める。ヒンジは曲げる向きを固定する */
     private fun clamp(spec: PartSpec, s: PartState): PartState {
-        val roll = s.roll.coerceIn(spec.roll.min, spec.roll.max)
         val hinge = spec.hinge
-        if (hinge != null) return PartState(s.phi.coerceIn(hinge.min, hinge.max), hinge.psi, roll)
-        return PartState(s.phi.coerceIn(0.0, phiMax(spec, s.psi)), s.psi, roll)
+        val swung = if (hinge != null) PartState(s.phi.coerceIn(hinge.min, hinge.max), hinge.psi, s.roll)
+        else PartState(s.phi.coerceIn(0.0, phiMax(spec, s.psi)), s.psi, s.roll)
+        // ひねりの範囲は曲げ角で変わる部位がある(E17-01)ので、曲げ角を収めてから収める
+        return clampRoll(spec, swung)
     }
 
     /** 長さ1から外れていれば正規化する。長さ0なら回さない */
