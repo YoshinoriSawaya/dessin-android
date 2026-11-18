@@ -59,6 +59,7 @@ import com.yswy.dessin.core.editor.UndoHistory
 import com.yswy.dessin.core.editor.mirrorSelected
 import com.yswy.dessin.core.editor.fadeOthers
 import com.yswy.dessin.core.editor.loadPose
+import com.yswy.dessin.core.editor.applyPreset
 import com.yswy.dessin.core.editor.preset
 import com.yswy.dessin.core.editor.toggle
 import com.yswy.dessin.gl.DollRenderer
@@ -104,6 +105,7 @@ fun DessinScreen(start: EditorState) {
     // 全体を表示に使う 3D の画面の縦横比
     var aspect by remember { mutableDoubleStateOf(1.0) }
     var dialog by remember { mutableStateOf<PoseDialog?>(null) }
+    var presetDialog by remember { mutableStateOf(false) }
     // 人形を消す前の確認(E13-02)
     var confirmRemoveDoll by remember { mutableStateOf(false) }
 
@@ -196,6 +198,7 @@ fun DessinScreen(start: EditorState) {
             saveTools = {
                 ToolChip("名前を付けて保存") { dialog = PoseDialog.Save(SaveKind.POSE, poses.suggestName()) }
                 ToolChip("保存した場面") { poses.list()?.let { dialog = PoseDialog.List(SaveKind.POSE, it) } }
+                ToolChip("プリセット") { presetDialog = true }
             },
             bodyTools = {
                 ToolChip("名前を付けて保存") { dialog = PoseDialog.Save(SaveKind.BODY, bodies.suggestName()) }
@@ -214,6 +217,13 @@ fun DessinScreen(start: EditorState) {
                 TextButton(onClick = { state = state.removeDoll(); confirmRemoveDoll = false }) { Text("消す", color = Palette.Accent) }
             },
             dismissButton = { TextButton(onClick = { confirmRemoveDoll = false }) { Text("キャンセル", color = Palette.Ink) } },
+        )
+    }
+
+    if (presetDialog) {
+        PresetPoseDialog(
+            onApply = { p -> state = state.applyPreset(p); presetDialog = false },
+            onDismiss = { presetDialog = false },
         )
     }
 

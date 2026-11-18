@@ -22,6 +22,7 @@
 | [E16](epics/E16-pelvis-root-chain.md) | 骨盤が根のときの胴の関節 | 完了 |
 | [E17](epics/E17-knee-structure.md) | 膝の構造(転がり・回旋・膝蓋骨) | 完了(扇形の表示は取り下げ) |
 | [E18](epics/E18-stick.md) | 手に持たせる棒 | 完了 |
+| [E19](epics/E19-preset-poses.md) | プリセットのポーズ | 進行中 |
 
 ## いまの状態(2026-11-19 時点)
 - 最新は v1.9.0(変更は CHANGELOG、振り返りは docs/retrospectives/R10-v1.9.md)。実機(Pixel 10a)に入れてある
@@ -37,7 +38,6 @@
 3. ビルド・テスト・エミュレータと実機での確認の手順は docs/development.md(JAVA_HOME を Android Studio の JBR に向ける。エミュレータは AssetDash_API37。デバッグビルドは `--es demo all|natural|multi --es select <部位id>` で起動時の状態を指定できる。実機へのインストールは裏で動かす)
 
 ## 次のフェーズの候補
-- プリセットのポーズ(立つ・座る・歩く・走る など)。v1 では入れなかった
 - Undo の履歴を画面の作り直し(回転など)でも残す
 - ポーズ全体の左右の写し・人形の左右反転(E15-02 は選んだ部位とその先だけ)
 

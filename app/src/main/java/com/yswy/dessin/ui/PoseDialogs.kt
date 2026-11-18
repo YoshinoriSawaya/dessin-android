@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yswy.dessin.core.editor.PresetPose
 import com.yswy.dessin.core.pose.PoseLibrary
 import com.yswy.dessin.core.pose.SavedPoseSummary
 import java.time.Instant
@@ -124,4 +125,27 @@ fun PoseListDialog(
             dismissButton = { TextButton(onClick = { deleting = null }) { Text("キャンセル", color = Palette.Ink) } },
         )
     }
+}
+
+/**
+ * プリセットのポーズの一覧(E19-01)。選ぶと操作中の人形に当てて閉じる。
+ * 当てるとポーズが差し替わるが、Undo で戻せるので確認は出さない
+ */
+@Composable
+fun PresetPoseDialog(onApply: (PresetPose) -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("プリセットのポーズ") },
+        text = {
+            LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                items(PresetPose.entries, key = { it.name }) { p ->
+                    TextButton(onClick = { onApply(p) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(p.label, fontSize = 15.sp, color = Palette.Ink, modifier = Modifier.fillMaxWidth())
+                    }
+                    HorizontalDivider(color = Palette.Line)
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("閉じる", color = Palette.Ink) } },
+    )
 }
