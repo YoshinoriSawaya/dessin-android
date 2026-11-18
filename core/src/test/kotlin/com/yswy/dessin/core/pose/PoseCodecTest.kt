@@ -172,7 +172,8 @@ class PoseCodecTest {
 
     @Test
     fun 版3は体型の行を書かない() {
-        assertEquals("dessin-pose 3", header())
+        // E18-01 で棒を足して版4になった。体型の行を書かないのは同じ
+        assertEquals("dessin-pose 4", header())
         val text = PoseCodec.encode(posed.withBody(BodyParams(headSize = 1.3)))
         assertTrue(text.lines().none { it.startsWith("body") })
         // 読み込むと体型は既定の値

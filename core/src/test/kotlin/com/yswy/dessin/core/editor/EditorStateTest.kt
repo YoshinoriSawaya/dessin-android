@@ -100,7 +100,7 @@ class EditorStateTest {
                 listOf("upperArmL", "upperArmR", "head", "pelvis"),
                 listOf("forearmL", "forearmR", "hipL", "hipR"),
                 listOf("handL", "handR", "thighL", "thighR"),
-                listOf("shinL", "shinR"),
+                listOf("shinL", "shinR", "stickL", "stickR"), // E18-01: 棒は手の子(すねと同じ段)
                 listOf("footL", "footR"),
                 listOf("toeL", "toeR"), // E08-03
             ),

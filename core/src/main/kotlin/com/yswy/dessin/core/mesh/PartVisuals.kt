@@ -9,6 +9,8 @@ import com.yswy.dessin.core.skeleton.HandShape
 import com.yswy.dessin.core.skeleton.KneePiece
 import com.yswy.dessin.core.skeleton.PATELLA_HALF_HEIGHT
 import com.yswy.dessin.core.skeleton.kneeCap
+import com.yswy.dessin.core.skeleton.StickShape
+import com.yswy.dessin.core.skeleton.isStick
 import com.yswy.dessin.core.skeleton.PartSpecs
 import com.yswy.dessin.core.skeleton.Sex
 import com.yswy.dessin.core.skeleton.Side
@@ -94,6 +96,10 @@ object PartVisuals {
     private const val CHEST_ROWS = 16
     /** 頭の形の、首の軸からの前へのずれ(頭の関節の空間。E14-01) */
     private const val HEAD_FORWARD = 0.025
+
+    /** 棒の板の幅(手の長さの向き)と厚み(E18-01) */
+    private const val STICK_WIDTH = 0.03
+    private const val STICK_THICKNESS = 0.012
 
     private class Entry(val part: PartMesh, val position: Vec3, val rotation: Quat)
 
@@ -219,6 +225,13 @@ object PartVisuals {
                 // 関節は足の空間で y = −0.045。箱の中心を関節の高さに置くと、裏(−0.0175)が足の裏(−0.0625)と揃う
                 mk(Primitives.box(0.072, 0.035, 0.045), Vec3(0.0, 0.0, 0.0225), edges = true)
                 marker(0.022)
+            }
+            "stick" -> {
+                // 棒(E18-01)。長さ1の板(幅は手の長さの向き y、厚みは x)を、長さと握る位置に合わせて z に伸ばして置く(meshWorldMatrix)。
+                // 手の甲の側の広い面に線を引き、面の向きを分かるようにする
+                val x = sg * (STICK_THICKNESS / 2 + LE)
+                mk(Primitives.box(STICK_THICKNESS, STICK_WIDTH, 1.0), Vec3.ZERO, edges = true,
+                    lines = listOf(tube(listOf(Vec3(x, 0.0, -0.5), Vec3(x, 0.0, 0.5)), closed = false)))
             }
             else -> error("見た目の定義が無い: $id")
         }
@@ -371,7 +384,7 @@ object PartVisuals {
 fun meshWorldMatrix(skeleton: Skeleton, id: String, index: Int): Mat4 {
     PartVisuals.meshes(id)[index].knee?.let { return kneeMatrix(skeleton, id, it) }
     val j = skeleton.worldTransforms().getValue(id)
-    val p = PartVisuals.placement(id, index, skeleton.body)
+    val p = if (isStick(id)) stickPlacement(skeleton.stickShape(id)) else PartVisuals.placement(id, index, skeleton.body)
     return Mat4.compose(j.position, j.rotation, j.scale) * Mat4.compose(p.position, p.rotation, p.scale)
 }
 
@@ -417,3 +430,7 @@ private fun kneeMatrix(skeleton: Skeleton, shinId: String, piece: KneePiece): Ma
         }
     }
 }
+
+/** 棒の置き方(E18-01)。長さ1の板を z に長さ倍し、後ろの端が握りから length × grip だけ後ろになるよう置く */
+private fun stickPlacement(s: StickShape): MeshPlacement =
+    MeshPlacement(Vec3(0.0, 0.0, s.length * (0.5 - s.grip)), Quat.IDENTITY, Vec3(1.0, 1.0, s.length))

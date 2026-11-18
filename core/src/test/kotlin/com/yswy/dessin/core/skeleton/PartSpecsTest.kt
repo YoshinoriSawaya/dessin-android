@@ -21,11 +21,12 @@ class PartSpecsTest {
         "hipL" to "pelvis", "thighL" to "hipL", "shinL" to "thighL", "footL" to "shinL", "toeL" to "footL",
         "clavR" to "rib", "upperArmR" to "clavR", "forearmR" to "upperArmR", "handR" to "forearmR",
         "hipR" to "pelvis", "thighR" to "hipR", "shinR" to "thighR", "footR" to "shinR", "toeR" to "footR",
+        "stickL" to "handL", "stickR" to "handR", // E18-01
     )
 
     @Test
     fun 部位は20個で親子関係がWeb版と一致する() {
-        assertEquals(23, PartSpecs.all.size) // E08-03 でつま先(左右)を足した
+        assertEquals(25, PartSpecs.all.size) // E08-03 でつま先(左右)を、E18-01 で棒(左右)を足した
         assertEquals(expectedParents, PartSpecs.all.associate { it.id to it.parent })
     }
 
@@ -47,7 +48,7 @@ class PartSpecsTest {
             2 to setOf("upperArmL", "upperArmR", "head", "pelvis"),
             3 to setOf("forearmL", "forearmR", "hipL", "hipR"),
             4 to setOf("handL", "handR", "thighL", "thighR"),
-            5 to setOf("shinL", "shinR"),
+            5 to setOf("shinL", "shinR", "stickL", "stickR"), // E18-01
             6 to setOf("footL", "footR"),
             7 to setOf("toeL", "toeR"), // E08-03
         )
@@ -133,9 +134,9 @@ class PartSpecsTest {
 
     @Test
     fun 足とつま先だけ基準フレームの参照軸がy() {
-        // E08-03: つま先も足と同じく前を向く部位なので参照軸は y
+        // E08-03: つま先も足と同じく前を向く部位なので参照軸は y。E18-01 の棒も前を向くので y
         PartSpecs.all.filterNot { it.isRoot }.forEach {
-            val expected = if (it.id.startsWith("foot") || it.id.startsWith("toe")) Vec3.Y else Vec3.Z
+            val expected = if (it.id.startsWith("foot") || it.id.startsWith("toe") || it.id.startsWith("stick")) Vec3.Y else Vec3.Z
             assertVec(expected, it.ref)
         }
         assertVec(Vec3.Z, PartSpecs["footL"].restDir)

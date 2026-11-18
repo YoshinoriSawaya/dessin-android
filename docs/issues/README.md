@@ -21,6 +21,7 @@
 | [E15](epics/E15-undo-mirror.md) | Undo と左右対称のコピー | 完了 |
 | [E16](epics/E16-pelvis-root-chain.md) | 骨盤が根のときの胴の関節 | 完了 |
 | [E17](epics/E17-knee-structure.md) | 膝の構造(転がり・回旋・膝蓋骨) | 完了(扇形の表示は取り下げ) |
+| [E18](epics/E18-stick.md) | 手に持たせる棒 | 進行中 |
 
 ## いまの状態(2026-11-19 時点)
 - 最新は v1.8.0(CHANGELOG、振り返りは docs/retrospectives/R09-v1.8.md)。実機(Pixel 10a)に入れてある
